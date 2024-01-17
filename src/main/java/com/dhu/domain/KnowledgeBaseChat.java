@@ -2,14 +2,14 @@ package com.dhu.domain;
 
 import java.time.LocalDateTime;
 
-public class PaperChat {
+public class KnowledgeBaseChat {
     private Integer id;
     private String question;
     private String answer;
     private LocalDateTime chatTime;
     private Integer chatterId;
-    private Integer paperId;
-    private Boolean isDeleted;
+    private Integer knowledgeBaseId;
+    private boolean isDeleted;
 
     public Integer getId() {
         return id;
@@ -51,19 +51,19 @@ public class PaperChat {
         this.chatterId = chatterId;
     }
 
-    public Integer getPaperId() {
-        return paperId;
+    public Integer getKnowledgeBaseId() {
+        return knowledgeBaseId;
     }
 
-    public void setPaperId(Integer paperId) {
-        this.paperId = paperId;
+    public void setKnowledgeBaseId(Integer knowledgeBaseId) {
+        this.knowledgeBaseId = knowledgeBaseId;
     }
 
-    public Boolean getDeleted() {
+    public boolean getDeleted() {
         return isDeleted;
     }
 
-    public void setDeleted(Boolean deleted) {
+    public void setDeleted(boolean deleted) {
         isDeleted = deleted;
     }
 }
