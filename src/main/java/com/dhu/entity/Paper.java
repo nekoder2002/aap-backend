@@ -1,12 +1,14 @@
-package com.dhu.domain;
+package com.dhu.entity;
 
 import java.time.LocalDateTime;
 
-public class Team {
+public class Paper {
     private Integer id;
     private String name;
-    private String information;
+    private String indexUUID;
     private LocalDateTime buildTime;
+    private Integer builderId;
+    private Integer knowledgeBaseId;
     private boolean isDeleted;
 
     public Integer getId() {
@@ -25,12 +27,12 @@ public class Team {
         this.name = name;
     }
 
-    public String getInformation() {
-        return information;
+    public String getIndexUUID() {
+        return indexUUID;
     }
 
-    public void setInformation(String information) {
-        this.information = information;
+    public void setIndexUUID(String indexUUID) {
+        this.indexUUID = indexUUID;
     }
 
     public LocalDateTime getBuildTime() {
@@ -41,7 +43,23 @@ public class Team {
         this.buildTime = buildTime;
     }
 
-    public boolean getDeleted() {
+    public Integer getBuilderId() {
+        return builderId;
+    }
+
+    public void setBuilderId(Integer builderId) {
+        this.builderId = builderId;
+    }
+
+    public Integer getKnowledgeBaseId() {
+        return knowledgeBaseId;
+    }
+
+    public void setKnowledgeBaseId(Integer knowledgeBaseId) {
+        this.knowledgeBaseId = knowledgeBaseId;
+    }
+
+    public boolean isDeleted() {
         return isDeleted;
     }
 

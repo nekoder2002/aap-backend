@@ -1,4 +1,4 @@
-package com.dhu.domain;
+package com.dhu.entity;
 
 import java.time.LocalDateTime;
 

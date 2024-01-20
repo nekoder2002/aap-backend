@@ -1,15 +1,28 @@
-package com.dhu.domain;
+package com.dhu.entity;
+
+import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 
+@TableName("tb_knowledge_base")
 public class KnowledgeBase {
+    @TableId(type = IdType.AUTO)
     private Integer id;
     private String name;
+    @TableField("info")
     private String information;
+    @TableField("index_uuid")
+    private String indexUUID;
+    @TableField("team_id")
     private Integer teamId;
-    private  Integer builderId;
-    private  Boolean isBelongsToTeam;
+    @TableField("builder_id")
+    private Integer builderId;
+    @TableField("is_team_kb")
+    private Boolean belongsToTeam;
+    @TableField("build_time")
     private LocalDateTime buildTime;
+    @TableLogic
     private boolean isDeleted;
 
     public Integer getId() {
@@ -36,6 +49,14 @@ public class KnowledgeBase {
         this.information = information;
     }
 
+    public String getIndexUUID() {
+        return indexUUID;
+    }
+
+    public void setIndexUUID(String indexUUID) {
+        this.indexUUID = indexUUID;
+    }
+
     public Integer getTeamId() {
         return teamId;
     }
@@ -53,11 +74,11 @@ public class KnowledgeBase {
     }
 
     public Boolean getBelongsToTeam() {
-        return isBelongsToTeam;
+        return belongsToTeam;
     }
 
     public void setBelongsToTeam(Boolean belongsToTeam) {
-        isBelongsToTeam = belongsToTeam;
+        this.belongsToTeam = belongsToTeam;
     }
 
     public LocalDateTime getBuildTime() {
@@ -68,6 +89,7 @@ public class KnowledgeBase {
         this.buildTime = buildTime;
     }
 
+    @JsonIgnore
     public boolean isDeleted() {
         return isDeleted;
     }

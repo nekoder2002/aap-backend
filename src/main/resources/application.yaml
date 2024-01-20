@@ -5,5 +5,28 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: 123456
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 123456
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 100ms
 
-kb_qa_interface_prefix: http://localhost/8000
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: is_deleted
+
+email:
+  email-host: smtp.163.com
+  transport-type: smtp
+  from-user: massd2002
+  from-email: massd2002@163.com
+  auth-code: 2368018
+
+kb-qa-interface-prefix: http://127.0.0.1:4523/m1/3866763-0-default
