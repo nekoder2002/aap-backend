@@ -1,13 +1,25 @@
 package com.dhu.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.LocalDateTime;
 
+@TableName("tb_paper")
 public class Paper {
+    @TableId(type = IdType.AUTO)
     private Integer id;
     private String name;
+    @TableField("index_uuid")
     private String indexUUID;
+    @TableField("build_time")
     private LocalDateTime buildTime;
+    @TableField("builder_time")
     private Integer builderId;
+    @TableField("kb_id")
     private Integer knowledgeBaseId;
     private boolean isDeleted;
 
@@ -31,6 +43,7 @@ public class Paper {
         return indexUUID;
     }
 
+    @JsonIgnore
     public void setIndexUUID(String indexUUID) {
         this.indexUUID = indexUUID;
     }
@@ -59,6 +72,7 @@ public class Paper {
         this.knowledgeBaseId = knowledgeBaseId;
     }
 
+    @JsonIgnore
     public boolean isDeleted() {
         return isDeleted;
     }

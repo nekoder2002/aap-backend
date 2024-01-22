@@ -49,7 +49,7 @@ public class EmailHelper {
         return Pattern.matches("^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\\\\.[a-zA-Z0-9-]+)*\\\\.[a-zA-Z0-9]{2,6}$",email);
     }
 
-    //生成验证码
+    //生成邮箱验证码
     public String generateCaptcha(int length) {
         Random random = new Random();
         StringBuilder builder = new StringBuilder();

@@ -49,6 +49,7 @@ public class KnowledgeBase {
         this.information = information;
     }
 
+    @JsonIgnore
     public String getIndexUUID() {
         return indexUUID;
     }

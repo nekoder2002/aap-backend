@@ -1,5 +1,7 @@
 package com.dhu.utils;
 
+import cn.hutool.http.HttpRequest;
+import com.dhu.constants.InterfaceUrlConstants;
 import com.dhu.exception.HttpException;
 import org.apache.commons.codec.CharEncoding;
 import org.apache.http.HttpEntity;
@@ -13,15 +15,20 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Component
 public class HttpHelper {
 
+    //使用连接池管理连接
     private static final PoolingHttpClientConnectionManager CONNECT_MANAGER;
 
     private static final RequestConfig.Builder CONFIG_BUILDER;
@@ -66,7 +73,7 @@ public class HttpHelper {
         HttpResponse response = null;
         HttpPost httpPost = new HttpPost(baseURL + url);
         httpPost.setConfig(CONFIG_BUILDER.build());
-        httpPost.setHeader("Content-type", "application/json");
+        httpPost.setHeader("Content-type", MediaType.APPLICATION_JSON_VALUE);
         try {
             httpPost.setEntity(new StringEntity(body));
             response = httpClient.execute(httpPost);
@@ -105,5 +112,20 @@ public class HttpHelper {
             consume(response);
         }
         return null;
+    }
+
+    //上传文件
+    public String upload(String url, MultipartFile[] files, Map<String, Object> params) {
+        File[] upFiles = new File[files.length];
+        for (int i = 0; i < files.length; i++) {
+            upFiles[i] = FileUtils.transferToFile(files[i]);
+        }
+        Map<String, Object> data = new HashMap<>(params);
+        data.put("files", upFiles);
+        return HttpRequest.post(baseURL + url)
+                .form(data)
+                .contentType("multipart/form-data")
+                .execute()
+                .body();
     }
 }

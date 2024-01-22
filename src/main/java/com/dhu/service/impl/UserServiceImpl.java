@@ -40,7 +40,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO login(LoginFormDTO loginForm) {
         //查询用户账号
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.select(User::getId, User::getEmail, User::getName).eq(User::getEmail, loginForm.getEmail()).eq(User::getPassword, loginForm.getPassword());
+        wrapper.eq(User::getEmail, loginForm.getEmail()).eq(User::getPassword, loginForm.getPassword());
         User user = userDao.selectOne(wrapper);
         if (user == null) {
             return null;
