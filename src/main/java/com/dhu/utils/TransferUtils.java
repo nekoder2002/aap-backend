@@ -6,9 +6,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 
-public class FileUtils {
+public class TransferUtils {
     //MultipartFile 转 File
-    public static File transferToFile(MultipartFile multipartFile) {
+    public static File toFile(MultipartFile multipartFile) {
         //选择用缓冲区来实现这个转换即使用java 创建的临时文件
         File file = null;
         try {

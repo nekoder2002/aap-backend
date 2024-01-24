@@ -1,25 +1,17 @@
-package com.dhu.entity;
-
-import com.baomidou.mybatisplus.annotation.*;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+package com.dhu.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-@TableName("tb_kb_chat")
-public class KnowledgeBaseChat {
-    @TableId(type = IdType.AUTO)
+public class KbChatDTO {
     private Integer id;
     private String question;
     private String answer;
-    @TableField("chat_time")
     private LocalDateTime chatTime;
-    @TableField("chatter_id")
     private Integer chatterId;
-    @TableField("kb_id")
     private Integer knowledgeBaseId;
-    private String data;
-    @TableLogic
-    private boolean isDeleted;
+    private List<HistoryDTO> history;
+    private List<KbDocDTO> docs;
 
     public Integer getId() {
         return id;
@@ -69,20 +61,19 @@ public class KnowledgeBaseChat {
         this.knowledgeBaseId = knowledgeBaseId;
     }
 
-    public String getData() {
-        return data;
+    public List<HistoryDTO> getHistory() {
+        return history;
     }
 
-    public void setData(String data) {
-        this.data = data;
+    public void setHistory(List<HistoryDTO> history) {
+        this.history = history;
     }
 
-    @JsonIgnore
-    public boolean isDeleted() {
-        return isDeleted;
+    public List<KbDocDTO> getDocs() {
+        return docs;
     }
 
-    public void setDeleted(boolean deleted) {
-        isDeleted = deleted;
+    public void setDocs(List<KbDocDTO> docs) {
+        this.docs = docs;
     }
 }

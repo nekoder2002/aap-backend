@@ -1,7 +1,6 @@
 package com.dhu.utils;
 
 import cn.hutool.http.HttpRequest;
-import com.dhu.constants.InterfaceUrlConstants;
 import com.dhu.exception.HttpException;
 import org.apache.commons.codec.CharEncoding;
 import org.apache.http.HttpEntity;
@@ -118,7 +117,7 @@ public class HttpHelper {
     public String upload(String url, MultipartFile[] files, Map<String, Object> params) {
         File[] upFiles = new File[files.length];
         for (int i = 0; i < files.length; i++) {
-            upFiles[i] = FileUtils.transferToFile(files[i]);
+            upFiles[i] = TransferUtils.toFile(files[i]);
         }
         Map<String, Object> data = new HashMap<>(params);
         data.put("files", upFiles);

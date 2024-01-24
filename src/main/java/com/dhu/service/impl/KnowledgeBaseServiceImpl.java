@@ -12,6 +12,7 @@ import com.dhu.entity.KnowledgeBase;
 import com.dhu.exception.HttpException;
 import com.dhu.exception.NotExistException;
 import com.dhu.service.KnowledgeBaseService;
+import com.dhu.service.PaperService;
 import com.dhu.utils.HttpHelper;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,8 @@ import java.util.UUID;
 public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     @Autowired
     private KnowledgeBaseDao knowledgeBaseDao;
+    @Autowired
+    private PaperService paperService;
     @Resource
     private HttpHelper httpHelper;
 
@@ -83,6 +86,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         String result = httpHelper.post(InterfaceUrlConstants.DEL_KNOWLEDGE_BASE, knowledgeBase.getIndexUUID());
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
+            paperService.deletePaperByKb(kbId);
             return knowledgeBaseDao.deleteById(kbId) > 0;
         } else {
             throw new HttpException("接口访问：删除知识库失败");
@@ -108,6 +112,9 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
             if (object.getInteger("code") != 200) {
                 throw new HttpException("接口访问：删除知识库失败");
             }
+        }
+        for (Integer kbId : kbIds) {
+            paperService.deletePaperByKb(kbId);
         }
         return knowledgeBaseDao.deleteBatchIds(kbIds) == kbIds.size();
     }

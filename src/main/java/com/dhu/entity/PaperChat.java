@@ -1,14 +1,24 @@
 package com.dhu.entity;
 
+import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.LocalDateTime;
 
+@TableName("tb_paper_chat")
 public class PaperChat {
+    @TableId(type = IdType.AUTO)
     private Integer id;
     private String question;
     private String answer;
+    @TableField("chat_time")
     private LocalDateTime chatTime;
+    @TableField("chatter_id")
     private Integer chatterId;
+    @TableField("paper_id")
     private Integer paperId;
+    private String data;
+    @TableLogic
     private boolean isDeleted;
 
     public Integer getId() {
@@ -59,7 +69,16 @@ public class PaperChat {
         this.paperId = paperId;
     }
 
-    public boolean getDeleted() {
+    public String getData() {
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
+    }
+
+    @JsonIgnore
+    public boolean isDeleted() {
         return isDeleted;
     }
 
