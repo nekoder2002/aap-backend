@@ -21,6 +21,7 @@ import com.dhu.entity.PaperChat;
 import com.dhu.exception.NotExistException;
 import com.dhu.service.ChatService;
 import com.dhu.utils.HttpHelper;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +40,7 @@ public class ChatServiceImpl implements ChatService {
     private KnowledgeBaseDao knowledgeBaseDao;
     @Autowired
     private KnowledgeBaseChatDao knowledgeBaseChatDao;
-    @Autowired
+    @Resource
     private HttpHelper httpHelper;
 
     @Override
@@ -85,8 +86,40 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public KbChatDTO chatWitHkb(KbChatDTO kbChat) {
-
-        return null;
+        KnowledgeBase kb = knowledgeBaseDao.selectById(kbChat.getKnowledgeBaseId());
+        if (kb == null) {
+            throw new NotExistException("目标知识库不存在，对话失败");
+        }
+        JSONArray history = new JSONArray();
+        history.addAll(kbChat.getHistory());
+        //调用接口
+        JSONObject json = new JSONObject();
+        json.fluentPut("query", kbChat.getQuestion());
+        json.fluentPut("knowledge_base_name", kb.getIndexUUID());
+        json.fluentPut("top_k", 3);
+        json.fluentPut("score_threshold", 0.5);
+        json.fluentPut("history", history);
+        json.fluentPut("stream", false);
+        json.fluentPut("model_name", "chatglm3-6b");
+        json.fluentPut("temperature", 0.7);
+        json.fluentPut("max_tokens", 1024);
+        json.fluentPut("prompt_name","default");
+        String result = httpHelper.post(InterfaceUrlConstants.KB_CHAT, json.toString());
+        JSONObject object = JSONObject.parseObject(result);
+        String answer = object.getString("answer");
+        JSONArray docs = object.getJSONArray("docs");
+        //存入数据库
+        kbChat.setAnswer(answer);
+        kbChat.setDocs(docs.toJavaList(KbDocDTO.class));
+        KnowledgeBaseChat chat=new KnowledgeBaseChat();
+        BeanUtil.copyProperties(kbChat, chat);
+        chat.setData(docs.toString());
+        if (knowledgeBaseChatDao.insert(chat) > 0) {
+            kbChat.setId(chat.getId());
+            return kbChat;
+        } else {
+            return null;
+        }
     }
 
     @Override

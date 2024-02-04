@@ -107,7 +107,7 @@ public class PaperServicreImpl implements PaperService {
         String result = httpHelper.post(InterfaceUrlConstants.DEL_FILE, json.toString());
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
-            //删除数据库
+            //删除论文
             return paperDao.deleteById(paperId) > 0;
         } else {
             throw new HttpException("接口访问：新建数据库失败");

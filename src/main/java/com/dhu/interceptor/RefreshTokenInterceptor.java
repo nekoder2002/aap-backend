@@ -15,7 +15,7 @@ import java.time.Duration;
 import java.util.Map;
 
 public class RefreshTokenInterceptor implements HandlerInterceptor {
-    private StringRedisTemplate redisTemplate;
+    private final StringRedisTemplate redisTemplate;
 
     public RefreshTokenInterceptor(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
