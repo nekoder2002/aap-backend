@@ -13,6 +13,7 @@ public class Result {
     public static final int DELETE_ERR = 20030;
     public static final int GET_ERR = 20040;
     public static final int EXCEPTION = 10000;
+    public static final int NOT_LOGIN = 20000;
 
     private final Integer code;
     private final Map<String, Object> data;
@@ -59,6 +60,11 @@ public class Result {
     public static Result exception() {
         return new Result(EXCEPTION, null).setMsg("后台系统异常");
     }
+
+    public static Result notLogin() {
+        return new Result(NOT_LOGIN, null).setMsg("未登录或登陆过期");
+    }
+
 
     public static Result verifySave(boolean condition) {
         return condition ? saveOk() : saveErr();

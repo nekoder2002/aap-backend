@@ -22,7 +22,7 @@ public class UserController {
 
     //登录
     @GetMapping("/login")
-    public Result login(@RequestBody LoginFormDTO loginForm) {
+    public Result login(LoginFormDTO loginForm) {
         String email = loginForm.getEmail();
         String password = loginForm.getPassword();
         if (!StringUtils.hasText(email) || !StringUtils.hasText(password)) {

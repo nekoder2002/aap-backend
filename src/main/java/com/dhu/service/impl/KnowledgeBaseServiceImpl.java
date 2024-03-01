@@ -45,7 +45,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     public IPage<KnowledgeBase> queryUserKnowledgeBases(int current, int size, Integer userId) {
         IPage<KnowledgeBase> page = new Page<>(current, size);
         LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(KnowledgeBase::getBuilderId, userId);
+        wrapper.eq(KnowledgeBase::getBuilderId, userId).orderByDesc(KnowledgeBase::getId);
         return knowledgeBaseDao.selectPage(page, wrapper);
     }
 
@@ -62,7 +62,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         // knowledge_base_name：string, 表示知识库的名称，非空且唯一不能重复；
         // vector_store_type：string, 表示向量库类型;
         // embed_model：string, 表示嵌入模型名称.
-        json.fluentPut("knowledge_base_name", kb.getName());
+        json.fluentPut("knowledge_base_name", kb.getIndexUUID());
         json.fluentPut("vector_store_type", "faiss");
         json.fluentPut("embed_model", "bge-large-zh");
         // 调用接口
@@ -83,7 +83,8 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
             throw new NotExistException("删除的知识库对象不存在");
         }
         //调用接口
-        String result = httpHelper.post(InterfaceUrlConstants.DEL_KNOWLEDGE_BASE, knowledgeBase.getIndexUUID());
+        //这里必须要用双引号包裹，不知道是为什么
+        String result = httpHelper.post(InterfaceUrlConstants.DEL_KNOWLEDGE_BASE, "\"" + knowledgeBase.getIndexUUID() + "\"");
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
             paperService.deletePaperByKb(kbId);
@@ -107,7 +108,8 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
                 throw new NotExistException("删除的知识库对象不存在");
             }
             //调用接口
-            String result = httpHelper.post(InterfaceUrlConstants.DEL_KNOWLEDGE_BASE, knowledgeBase.getIndexUUID());
+            //这里必须要用双引号包裹，不知道是为什么
+            String result = httpHelper.post(InterfaceUrlConstants.DEL_KNOWLEDGE_BASE, "\"" + knowledgeBase.getIndexUUID() + "\"");
             JSONObject object = JSONObject.parseObject(result);
             if (object.getInteger("code") != 200) {
                 throw new HttpException("接口访问：删除知识库失败");

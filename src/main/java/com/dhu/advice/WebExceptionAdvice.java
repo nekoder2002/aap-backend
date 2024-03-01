@@ -14,11 +14,15 @@ public class WebExceptionAdvice {
             MailException.class,
             BlankObjectException.class,
             IllegalObjectException.class,
-            NotLoginException.class,
             HttpException.class
     })
     public Result doDataException(Exception e) {
         return Result.exception().setMsg(e.getMessage());
+    }
+
+    @ExceptionHandler(NotLoginException.class)
+    public Result doNotLoginException(Exception e) {
+        return Result.notLogin().setMsg(e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -50,13 +51,13 @@ public class UserServiceImpl implements UserService {
         BeanUtil.copyProperties(user, dto);
         //userDTO转为map
         Map<String, Object> dtoMap = BeanUtil.beanToMap(dto, new HashMap<>(), CopyOptions.create().setIgnoreNullValue(true)
-                .setFieldValueEditor((fieldName, fieldValue) -> fieldValue.toString()));
+                .setFieldValueEditor((fieldName, fieldValue) -> Objects.toString(fieldValue)));
         //生成token，作为登录令牌
         String token = UUID.randomUUID().toString();
         //存入redis
         stringRedisTemplate.opsForHash().putAll(RedisConstants.LOGIN_USER_KEY + token, dtoMap);
         //设置有效期
-        stringRedisTemplate.expire(token, Duration.ofMinutes(RedisConstants.LOGIN_USER_MIN_TTL));
+        stringRedisTemplate.expire(RedisConstants.LOGIN_USER_KEY + token, Duration.ofMinutes(RedisConstants.LOGIN_USER_MIN_TTL));
         dto.setToken(token);
         return dto;
     }
@@ -65,7 +66,7 @@ public class UserServiceImpl implements UserService {
     public boolean register(RegisterFormDTO registerFormDTO) {
         // 查询用户是否存在
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.select(User::getId, User::getEmail, User::getName).eq(User::getEmail, registerFormDTO.getEmail()).eq(User::getPassword, registerFormDTO.getPassword());
+        wrapper.select(User::getId, User::getEmail, User::getName).eq(User::getEmail, registerFormDTO.getEmail());
         if (userDao.selectOne(wrapper) != null) {
             return false;
         }
