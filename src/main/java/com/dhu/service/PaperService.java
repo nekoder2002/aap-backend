@@ -1,7 +1,6 @@
 package com.dhu.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.dhu.dto.PapersAddDTO;
 import com.dhu.entity.Paper;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,7 +11,7 @@ public interface PaperService {
     IPage<Paper> queryPapers(int current, int size, Integer kbId);
 
     //上传论文
-    boolean uploadPaper(PapersAddDTO papersAddDTO, MultipartFile[] files);
+    boolean uploadPaper(Integer kbId,Integer builderId, MultipartFile files);
 
     //删除论文
     boolean deletePaper(Integer paperId);

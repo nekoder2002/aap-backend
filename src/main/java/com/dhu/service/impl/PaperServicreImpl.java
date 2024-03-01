@@ -9,7 +9,6 @@ import com.dhu.constants.BaseConstants;
 import com.dhu.constants.InterfaceUrlConstants;
 import com.dhu.dao.KnowledgeBaseDao;
 import com.dhu.dao.PaperDao;
-import com.dhu.dto.PapersAddDTO;
 import com.dhu.entity.KnowledgeBase;
 import com.dhu.entity.Paper;
 import com.dhu.exception.HttpException;
@@ -44,15 +43,13 @@ public class PaperServicreImpl implements PaperService {
     }
 
     @Override
-    public boolean uploadPaper(PapersAddDTO papersAddDTO, MultipartFile[] files) {
-        KnowledgeBase kb = knowledgeBaseDao.selectById(papersAddDTO.getKbId());
+    public boolean uploadPaper(Integer kbId, Integer builderId, MultipartFile file) {
+        KnowledgeBase kb = knowledgeBaseDao.selectById(kbId);
         if (kb == null) {
             throw new NotExistException("上传的知识库不存在，请重试");
         }
-        List<String> uuids = new ArrayList<>();
-        for (int i = 0; i < papersAddDTO.getNames().size(); i++) {
-            uuids.add(UUID.randomUUID().toString());
-        }
+        //生成uuid
+        String uuid = UUID.randomUUID().toString();
         Map<String, Object> data = new HashMap<>();
         data.put("knowledge_base_name", kb.getIndexUUID());
         data.put("override", true);
@@ -61,22 +58,19 @@ public class PaperServicreImpl implements PaperService {
         data.put("chunk_overlap", 50);
         data.put("zh_title_enhance", true);
         data.put("not_refresh_vs_cache", false);
-        String result = httpHelper.upload(InterfaceUrlConstants.UPLOAD_FILE, files, data);
+        data.put("filename_dict", String.format("{'%s':'%s'}",uuid+".pdf",file.getOriginalFilename()));
+        String result = httpHelper.upload(InterfaceUrlConstants.UPLOAD_FILE, uuid, file, data);
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
             //插入数据库
             LocalDateTime now = LocalDateTime.now();
-            int count = 0;
-            for (String name : papersAddDTO.getNames()) {
-                Paper paper = new Paper();
-                paper.setName(name);
-                paper.setIndexUUID(uuids.get(count));
-                paper.setBuildTime(now);
-                paper.setBuilderId(papersAddDTO.getBuilderId());
-                paper.setKnowledgeBaseId(papersAddDTO.getKbId());
-                count += paperDao.insert(paper);
-            }
-            return count == papersAddDTO.getNames().size();
+            Paper paper = new Paper();
+            paper.setName(file.getOriginalFilename());
+            paper.setIndexUUID(uuid);
+            paper.setBuildTime(now);
+            paper.setBuilderId(builderId);
+            paper.setKnowledgeBaseId(kbId);
+            return paperDao.insert(paper) > 0;
         } else {
             //获取失败的文件列表
             throw new HttpException("接口访问：插入部分文件失败");

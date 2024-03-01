@@ -1,9 +1,6 @@
 package com.dhu.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
@@ -17,10 +14,11 @@ public class Paper {
     private String indexUUID;
     @TableField("build_time")
     private LocalDateTime buildTime;
-    @TableField("builder_time")
+    @TableField("builder_id")
     private Integer builderId;
     @TableField("kb_id")
     private Integer knowledgeBaseId;
+    @TableLogic
     private boolean isDeleted;
 
     public Integer getId() {

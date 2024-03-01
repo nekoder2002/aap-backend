@@ -114,11 +114,12 @@ public class HttpHelper {
     }
 
     //上传文件
-    public String upload(String url, MultipartFile[] files, Map<String, Object> params) {
-        File[] upFiles = new File[files.length];
-        for (int i = 0; i < files.length; i++) {
-            upFiles[i] = TransferUtils.toFile(files[i]);
-        }
+    public String upload(String url, String uuid, MultipartFile file, Map<String, Object> params) {
+        File[] upFiles = new File[1];
+        upFiles[0] = TransferUtils.toFile(file);
+        File reFile=new File(upFiles[0].getParentFile(), uuid + ".pdf");
+        upFiles[0].renameTo(reFile);
+        upFiles[0]=reFile;
         Map<String, Object> data = new HashMap<>(params);
         data.put("files", upFiles);
         return HttpRequest.post(baseURL + url)
