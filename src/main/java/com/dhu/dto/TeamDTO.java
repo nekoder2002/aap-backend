@@ -1,21 +1,14 @@
-package com.dhu.entity;
-
-import com.baomidou.mybatisplus.annotation.*;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+package com.dhu.dto;
 
 import java.time.LocalDateTime;
 
-@TableName("tb_team")
-public class Team {
-    @TableId(type = IdType.AUTO)
+public class TeamDTO {
     private Integer id;
     private String name;
-    @TableField("info")
     private String information;
-    @ TableField("build_time")
     private LocalDateTime buildTime;
-    @TableLogic
-    private boolean isDeleted;
+    private String adminName;
+    private Integer adminId;
 
     public Integer getId() {
         return id;
@@ -49,12 +42,19 @@ public class Team {
         this.buildTime = buildTime;
     }
 
-    @JsonIgnore
-    public boolean isDeleted() {
-        return isDeleted;
+    public String getAdminName() {
+        return adminName;
     }
 
-    public void setDeleted(boolean deleted) {
-        isDeleted = deleted;
+    public void setAdminName(String adminName) {
+        this.adminName = adminName;
+    }
+
+    public Integer getAdminId() {
+        return adminId;
+    }
+
+    public void setAdminId(Integer adminId) {
+        this.adminId = adminId;
     }
 }

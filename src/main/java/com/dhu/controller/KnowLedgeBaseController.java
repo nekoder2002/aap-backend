@@ -1,12 +1,10 @@
 package com.dhu.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.dhu.dto.KbAddFormDTO;
 import com.dhu.entity.KnowledgeBase;
 import com.dhu.service.KnowledgeBaseService;
 import com.dhu.utils.UserHolder;
 import com.dhu.utils.model.Result;
-import org.apache.ibatis.annotations.Delete;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

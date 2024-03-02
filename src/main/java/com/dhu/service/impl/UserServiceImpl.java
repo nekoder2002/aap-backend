@@ -12,6 +12,7 @@ import com.dhu.dto.UserDTO;
 import com.dhu.entity.User;
 import com.dhu.exception.NotMatchException;
 import com.dhu.service.UserService;
+import com.dhu.utils.BaseUtils;
 import com.dhu.utils.EmailHelper;
 import com.dhu.utils.UserHolder;
 import jakarta.annotation.Resource;
@@ -104,7 +105,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean sendCaptcha(String email) {
         //生成验证码
-        String captcha = emailHelper.generateCaptcha(BaseConstants.CAPTCHA_LENGTH);
+        String captcha = BaseUtils.generateRandomCode(BaseConstants.MAIL_CAPTCHA_LENGTH);
         // 发送信息
         String text = "您的验证码为:<br><h1>" + captcha + "</h1><br>发送时间：" + LocalDateTime.now() + " ," + RedisConstants.REGISTER_CAPTCHA_MIN_TTL + "分钟内有效";
         emailHelper.sendMessage(email, "<" + BaseConstants.PROJECT_NAME + "> 注册验证邮件", text);

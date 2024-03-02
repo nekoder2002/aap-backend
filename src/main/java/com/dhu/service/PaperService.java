@@ -1,6 +1,7 @@
 package com.dhu.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.dhu.dto.PaperDTO;
 import com.dhu.entity.Paper;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -8,7 +9,7 @@ import java.util.List;
 
 public interface PaperService {
     //获取知识库的Paper列表
-    IPage<Paper> queryPapers(int current, int size, Integer kbId);
+    IPage<PaperDTO> queryPapers(int current, int size, Integer kbId);
 
     //上传论文
     boolean uploadPaper(Integer kbId,Integer builderId, MultipartFile files);

@@ -2,7 +2,6 @@ package com.dhu.service;
 
 import com.dhu.dto.KbChatDTO;
 import com.dhu.dto.PaperChatDTO;
-import com.dhu.entity.PaperChat;
 
 import java.util.List;
 

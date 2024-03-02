@@ -116,7 +116,7 @@ public class HttpHelper {
     //上传文件
     public String upload(String url, String uuid, MultipartFile file, Map<String, Object> params) {
         File[] upFiles = new File[1];
-        upFiles[0] = TransferUtils.toFile(file);
+        upFiles[0] = BaseUtils.toFile(file);
         File reFile=new File(upFiles[0].getParentFile(), uuid + ".pdf");
         upFiles[0].renameTo(reFile);
         upFiles[0]=reFile;

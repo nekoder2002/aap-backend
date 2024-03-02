@@ -28,7 +28,7 @@ public class PaperController {
     //上传论文
     @PostMapping("/insert")
     Result insert(Integer kbId, MultipartFile file) {
-        if (kbId==null||kbId<=0||file==null){
+        if (kbId == null || kbId <= 0 || file == null) {
             return Result.getErr().setMsg("上传参数错误");
         }
         return Result.verifySave(paperService.uploadPaper(kbId, UserHolder.getUser().getId(), file));

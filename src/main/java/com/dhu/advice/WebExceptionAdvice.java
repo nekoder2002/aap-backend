@@ -14,7 +14,8 @@ public class WebExceptionAdvice {
             MailException.class,
             BlankObjectException.class,
             IllegalObjectException.class,
-            HttpException.class
+            HttpException.class,
+            OperationException.class
     })
     public Result doDataException(Exception e) {
         return Result.exception().setMsg(e.getMessage());

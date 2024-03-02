@@ -1,5 +1,6 @@
 package com.dhu.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -9,6 +10,8 @@ import com.dhu.constants.BaseConstants;
 import com.dhu.constants.InterfaceUrlConstants;
 import com.dhu.dao.KnowledgeBaseDao;
 import com.dhu.dao.PaperDao;
+import com.dhu.dao.UserDao;
+import com.dhu.dto.PaperDTO;
 import com.dhu.entity.KnowledgeBase;
 import com.dhu.entity.Paper;
 import com.dhu.exception.HttpException;
@@ -31,15 +34,30 @@ public class PaperServicreImpl implements PaperService {
     private PaperDao paperDao;
     @Autowired
     private KnowledgeBaseDao knowledgeBaseDao;
+    @Autowired
+    private UserDao userDao;
     @Resource
     private HttpHelper httpHelper;
 
     @Override
-    public IPage<Paper> queryPapers(int current, int size, Integer kbId) {
+    public IPage<PaperDTO> queryPapers(int current, int size, Integer kbId) {
         IPage<Paper> page = new Page<>(current, size);
+        IPage<PaperDTO> dtoPage = new Page<>(current, size);
         LambdaQueryWrapper<Paper> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Paper::getKnowledgeBaseId, kbId);
-        return paperDao.selectPage(page, wrapper);
+        wrapper.eq(Paper::getKnowledgeBaseId, kbId).orderByDesc(Paper::getId);
+        paperDao.selectPage(page, wrapper);
+        List<Paper> list = page.getRecords();
+        List<PaperDTO> dtoList = new ArrayList<>();
+        for (Paper kb : list) {
+            PaperDTO dto = new PaperDTO();
+            BeanUtil.copyProperties(kb, dto);
+            dto.setBuilderName(userDao.selectById(kb.getBuilderId()).getName());
+            dtoList.add(dto);
+        }
+        dtoPage.setPages(page.getPages());
+        dtoPage.setTotal(page.getTotal());
+        dtoPage.setRecords(dtoList);
+        return dtoPage;
     }
 
     @Override

@@ -12,7 +12,6 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Properties;
-import java.util.Random;
 import java.util.regex.Pattern;
 
 @Component
@@ -47,24 +46,6 @@ public class EmailHelper {
     // 校验邮箱地址是否合法
     public boolean verifyEmail(String email){
         return Pattern.matches("^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\\\\.[a-zA-Z0-9-]+)*\\\\.[a-zA-Z0-9]{2,6}$",email);
-    }
-
-    //生成邮箱验证码
-    public String generateCaptcha(int length) {
-        Random random = new Random();
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < length; i++) {
-            if (random.nextBoolean()) {
-                if (random.nextBoolean()) {
-                    builder.append((char)('a' + random.nextInt(26)));
-                } else {
-                    builder.append((char)('A' + random.nextInt(26)));
-                }
-            } else {
-                builder.append(random.nextInt(10));
-            }
-        }
-        return builder.toString();
     }
 
     //发送邮件

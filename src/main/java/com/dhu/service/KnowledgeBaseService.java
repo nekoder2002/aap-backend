@@ -2,16 +2,17 @@ package com.dhu.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.dhu.dto.KbAddFormDTO;
+import com.dhu.dto.KbDTO;
 import com.dhu.entity.KnowledgeBase;
 
 import java.util.List;
 
 public interface KnowledgeBaseService {
     //获取团队的知识库列表
-    IPage<KnowledgeBase> queryTeamKnowledgeBases(int current, int size, Integer teamId);
+    IPage<KbDTO> queryTeamKnowledgeBases(int current, int size, Integer teamId);
 
     //获取个人的知识库列表
-    IPage<KnowledgeBase> queryUserKnowledgeBases(int current, int size, Integer userId);
+    IPage<KbDTO> queryUserKnowledgeBases(int current, int size, Integer userId);
 
     //插入知识库
     boolean insertKnowledgeBase(KbAddFormDTO kbAddForm);

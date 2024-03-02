@@ -7,10 +7,13 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dhu.constants.InterfaceUrlConstants;
 import com.dhu.dao.KnowledgeBaseDao;
+import com.dhu.dao.UserDao;
 import com.dhu.dto.KbAddFormDTO;
+import com.dhu.dto.KbDTO;
 import com.dhu.entity.KnowledgeBase;
 import com.dhu.exception.HttpException;
 import com.dhu.exception.NotExistException;
+import com.dhu.exception.OperationException;
 import com.dhu.service.KnowledgeBaseService;
 import com.dhu.service.PaperService;
 import com.dhu.utils.HttpHelper;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,24 +33,52 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     @Autowired
     private KnowledgeBaseDao knowledgeBaseDao;
     @Autowired
+    private UserDao userDao;
+    @Autowired
     private PaperService paperService;
     @Resource
     private HttpHelper httpHelper;
 
     @Override
-    public IPage<KnowledgeBase> queryTeamKnowledgeBases(int current, int size, Integer teamId) {
+    public IPage<KbDTO> queryTeamKnowledgeBases(int current, int size, Integer teamId) {
         IPage<KnowledgeBase> page = new Page<>(current, size);
+        IPage<KbDTO> dtoPage = new Page<>(current, size);
         LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(KnowledgeBase::getTeamId, teamId);
-        return knowledgeBaseDao.selectPage(page, wrapper);
+        wrapper.eq(KnowledgeBase::getTeamId, teamId).orderByDesc(KnowledgeBase::getId);
+        knowledgeBaseDao.selectPage(page, wrapper);
+        List<KnowledgeBase> list = page.getRecords();
+        List<KbDTO> dtoList = new ArrayList<>();
+        for (KnowledgeBase kb : list) {
+            KbDTO dto = new KbDTO();
+            BeanUtil.copyProperties(kb, dto);
+            dto.setBuilderName(userDao.selectById(kb.getBuilderId()).getName());
+            dtoList.add(dto);
+        }
+        dtoPage.setPages(page.getPages());
+        dtoPage.setTotal(page.getTotal());
+        dtoPage.setRecords(dtoList);
+        return dtoPage;
     }
 
     @Override
-    public IPage<KnowledgeBase> queryUserKnowledgeBases(int current, int size, Integer userId) {
+    public IPage<KbDTO> queryUserKnowledgeBases(int current, int size, Integer userId) {
         IPage<KnowledgeBase> page = new Page<>(current, size);
+        IPage<KbDTO> dtoPage = new Page<>(current, size);
         LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(KnowledgeBase::getBuilderId, userId).orderByDesc(KnowledgeBase::getId);
-        return knowledgeBaseDao.selectPage(page, wrapper);
+        knowledgeBaseDao.selectPage(page, wrapper);
+        List<KnowledgeBase> list = page.getRecords();
+        List<KbDTO> dtoList = new ArrayList<>();
+        for (KnowledgeBase kb : list) {
+            KbDTO dto = new KbDTO();
+            BeanUtil.copyProperties(kb, dto);
+            dto.setBuilderName(userDao.selectById(kb.getBuilderId()).getName());
+            dtoList.add(dto);
+        }
+        dtoPage.setPages(page.getPages());
+        dtoPage.setTotal(page.getTotal());
+        dtoPage.setRecords(dtoList);
+        return dtoPage;
     }
 
     @Override
@@ -87,8 +119,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         String result = httpHelper.post(InterfaceUrlConstants.DEL_KNOWLEDGE_BASE, "\"" + knowledgeBase.getIndexUUID() + "\"");
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
-            paperService.deletePaperByKb(kbId);
-            return knowledgeBaseDao.deleteById(kbId) > 0;
+            return paperService.deletePaperByKb(kbId) && knowledgeBaseDao.deleteById(kbId) > 0;
         } else {
             throw new HttpException("接口访问：删除知识库失败");
         }
@@ -116,7 +147,9 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
             }
         }
         for (Integer kbId : kbIds) {
-            paperService.deletePaperByKb(kbId);
+            if (paperService.deletePaperByKb(kbId)) {
+                throw new OperationException("删除知识库出现错误");
+            }
         }
         return knowledgeBaseDao.deleteBatchIds(kbIds) == kbIds.size();
     }
