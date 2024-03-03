@@ -4,6 +4,7 @@ import com.dhu.entity.Paper;
 import com.dhu.service.PaperService;
 import com.dhu.utils.UserHolder;
 import com.dhu.utils.model.Result;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,7 +30,7 @@ public class PaperController {
     @PostMapping("/insert")
     Result insert(Integer kbId, MultipartFile file) {
         if (kbId == null || kbId <= 0 || file == null) {
-            return Result.getErr().setMsg("上传参数错误");
+            return Result.saveErr().setMsg("上传参数错误");
         }
         return Result.verifySave(paperService.uploadPaper(kbId, UserHolder.getUser().getId(), file));
     }
@@ -57,5 +58,11 @@ public class PaperController {
     //查询知识库中论文数量
     Result countTeamKnowledgeBases(Integer kbId) {
         return null;
+    }
+
+    //下载论文
+    @GetMapping("/download")
+    public void download(@RequestParam("paper_id") Integer paperId, HttpServletResponse response) {
+        paperService.download(paperId,response);
     }
 }

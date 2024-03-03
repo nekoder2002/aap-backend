@@ -19,7 +19,10 @@ import com.dhu.exception.NotExistException;
 import com.dhu.service.PaperService;
 import com.dhu.utils.HttpHelper;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -76,7 +79,7 @@ public class PaperServicreImpl implements PaperService {
         data.put("chunk_overlap", 50);
         data.put("zh_title_enhance", true);
         data.put("not_refresh_vs_cache", false);
-        data.put("filename_dict", String.format("{'%s':'%s'}",uuid+".pdf",file.getOriginalFilename()));
+        data.put("filename_dict", String.format("{'%s':'%s'}", uuid + BaseConstants.PAPER_TYPE, file.getOriginalFilename()));
         String result = httpHelper.upload(InterfaceUrlConstants.UPLOAD_FILE, uuid, file, data);
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
@@ -184,5 +187,25 @@ public class PaperServicreImpl implements PaperService {
         LambdaQueryWrapper<Paper> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Paper::getKnowledgeBaseId, kbId);
         return paperDao.selectCount(wrapper);
+    }
+
+    @Override
+    public boolean download(Integer paperId, HttpServletResponse response) {
+        // 查找 paper 所在的知识库
+        Paper paper = paperDao.selectById(paperId);
+        if (paper == null) {
+            throw new NotExistException("删除的论文不存在，请重试");
+        }
+        KnowledgeBase kb = knowledgeBaseDao.selectById(paper.getKnowledgeBaseId());
+        if (kb == null) {
+            throw new NotExistException("删除的知识库不存在，请重试");
+        }
+        // 调用第三方接口
+        Map<String, String> params = new HashMap<>();
+        params.put("knowledge_base_name", kb.getIndexUUID());
+        params.put("file_name", paper.getIndexUUID() + BaseConstants.PAPER_TYPE);
+        params.put("preview", "false");
+        httpHelper.downloadFile(InterfaceUrlConstants.FILE_DOWNLOAD, params, response, paper.getName());
+        return true;
     }
 }

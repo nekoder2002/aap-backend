@@ -22,11 +22,6 @@ spring:
       # 单个文件大小
       max-file-size: 100MB
 
-mybatis-plus:
-  global-config:
-    db-config:
-      logic-delete-field: is_deleted
-
 email:
   email-host: smtp.163.com
   transport-type: smtp

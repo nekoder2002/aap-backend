@@ -3,6 +3,7 @@ package com.dhu.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.dhu.dto.PaperDTO;
 import com.dhu.entity.Paper;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -12,7 +13,7 @@ public interface PaperService {
     IPage<PaperDTO> queryPapers(int current, int size, Integer kbId);
 
     //上传论文
-    boolean uploadPaper(Integer kbId,Integer builderId, MultipartFile files);
+    boolean uploadPaper(Integer kbId, Integer builderId, MultipartFile files);
 
     //删除论文
     boolean deletePaper(Integer paperId);
@@ -28,4 +29,7 @@ public interface PaperService {
 
     //查询知识库中论文数量
     long countTeamKnowledgeBases(Integer kbId);
+
+    //下载论文
+    boolean download(Integer paperId, HttpServletResponse response);
 }

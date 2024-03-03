@@ -132,26 +132,30 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
 
     @Override
     public boolean deleteKnowledgeBases(List<Integer> kbIds) {
-        for (Integer kbId : kbIds) {
-            //查询uuid
-            KnowledgeBase knowledgeBase = knowledgeBaseDao.selectById(kbId);
-            if (knowledgeBase == null) {
-                throw new NotExistException("删除的知识库对象不存在");
+        if (!kbIds.isEmpty()){
+            for (Integer kbId : kbIds) {
+                //查询uuid
+                KnowledgeBase knowledgeBase = knowledgeBaseDao.selectById(kbId);
+                if (knowledgeBase == null) {
+                    throw new NotExistException("删除的知识库对象不存在");
+                }
+                //调用接口
+                //这里必须要用双引号包裹，不知道是为什么
+                String result = httpHelper.post(InterfaceUrlConstants.DEL_KNOWLEDGE_BASE, "\"" + knowledgeBase.getIndexUUID() + "\"");
+                JSONObject object = JSONObject.parseObject(result);
+                if (object.getInteger("code") != 200) {
+                    throw new HttpException("接口访问：删除知识库失败");
+                }
             }
-            //调用接口
-            //这里必须要用双引号包裹，不知道是为什么
-            String result = httpHelper.post(InterfaceUrlConstants.DEL_KNOWLEDGE_BASE, "\"" + knowledgeBase.getIndexUUID() + "\"");
-            JSONObject object = JSONObject.parseObject(result);
-            if (object.getInteger("code") != 200) {
-                throw new HttpException("接口访问：删除知识库失败");
+            for (Integer kbId : kbIds) {
+                if (paperService.deletePaperByKb(kbId)) {
+                    throw new OperationException("删除知识库出现错误");
+                }
             }
+            return knowledgeBaseDao.deleteBatchIds(kbIds) == kbIds.size();
+        }else{
+            return true;
         }
-        for (Integer kbId : kbIds) {
-            if (paperService.deletePaperByKb(kbId)) {
-                throw new OperationException("删除知识库出现错误");
-            }
-        }
-        return knowledgeBaseDao.deleteBatchIds(kbIds) == kbIds.size();
     }
 
     @Override

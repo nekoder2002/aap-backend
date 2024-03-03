@@ -13,7 +13,10 @@ import com.dhu.dao.UserTeamRelationDao;
 import com.dhu.dto.MemberDTO;
 import com.dhu.dto.TeamAddFormDTO;
 import com.dhu.dto.TeamDTO;
-import com.dhu.entity.*;
+import com.dhu.entity.KnowledgeBase;
+import com.dhu.entity.Team;
+import com.dhu.entity.User;
+import com.dhu.entity.UserTeamRelation;
 import com.dhu.exception.OperationException;
 import com.dhu.service.KnowledgeBaseService;
 import com.dhu.service.TeamService;
@@ -59,34 +62,46 @@ public class TeamServiceImpl implements TeamService {
         LambdaQueryWrapper<User> userWrapper = new LambdaQueryWrapper<>();
         Map<Integer, User> userIndex = new HashMap<>();
         Map<Integer, Team> teamIndex = new HashMap<>();
+        Map<Integer, User> utMap = new HashMap<>();
         //查找关系表
-        relWrapper.eq(UserTeamRelation::getUserId, userId).eq(isAdmin, UserTeamRelation::isAdmin, isAdmin).orderByDesc(UserTeamRelation::getJoinTime);
+        relWrapper.eq(UserTeamRelation::getUserId, userId).eq(isAdmin, UserTeamRelation::getAdmin, isAdmin).orderByDesc(UserTeamRelation::getJoinTime);
         userTeamRelationDao.selectPage(relPage, relWrapper);
         List<UserTeamRelation> relList = relPage.getRecords();
         //查找团队
-        teamWrapper.in(Team::getId, relList.stream().map(UserTeamRelation::getTeamId).toList());
-        List<Team> teams = teamDao.selectList(teamWrapper);
-        for (Team team : teams) {
-            teamIndex.put(team.getId(), team);
-        }
-        //查找用户
-        userWrapper.in(User::getId, relList.stream().map(UserTeamRelation::getUserId).toList());
-        List<User> users = userDao.selectList(userWrapper);
-        for (User user : users) {
-            userIndex.put(user.getId(), user);
-        }
-        //封装dto
-        List<TeamDTO> dtoList = new ArrayList<>();
-        for (UserTeamRelation relation : relList) {
-            TeamDTO dto = new TeamDTO();
-            BeanUtil.copyProperties(teamIndex.get(relation.getTeamId()), dto);
-            dto.setAdminName(userIndex.get(relation.getUserId()).getName());
-            dto.setAdminId(relation.getUserId());
-            dtoList.add(dto);
+        if (!relList.isEmpty()) {
+            teamWrapper.in(Team::getId, relList.stream().map(UserTeamRelation::getTeamId).toList());
+            List<Team> teams = teamDao.selectList(teamWrapper);
+            for (Team team : teams) {
+                teamIndex.put(team.getId(), team);
+            }
+            //查找管理员
+            relWrapper.clear();
+            relWrapper.eq(UserTeamRelation::getAdmin, true).in(UserTeamRelation::getTeamId, relList.stream().map(UserTeamRelation::getTeamId).toList());
+            List<UserTeamRelation> adminList = userTeamRelationDao.selectList(relWrapper);
+            userWrapper.in(User::getId, adminList.stream().map(UserTeamRelation::getUserId).toList());
+            List<User> users = userDao.selectList(userWrapper);
+            for (User user : users) {
+                userIndex.put(user.getId(), user);
+            }
+            for (UserTeamRelation relation:adminList) {
+                utMap.put(relation.getTeamId(), userIndex.get(relation.getUserId()));
+            }
+            //封装dto
+            List<TeamDTO> dtoList = new ArrayList<>();
+            for (UserTeamRelation relation : relList) {
+                TeamDTO dto = new TeamDTO();
+                User user=utMap.get(relation.getTeamId());
+                BeanUtil.copyProperties(teamIndex.get(relation.getTeamId()), dto);
+                dto.setAdminName(user.getName());
+                dto.setAdminId(user.getId());
+                dtoList.add(dto);
+            }
+            dtoPage.setRecords(dtoList);
+        } else {
+            dtoPage.setRecords(List.of());
         }
         dtoPage.setPages(relPage.getPages());
         dtoPage.setTotal(relPage.getTotal());
-        dtoPage.setRecords(dtoList);
         return dtoPage;
     }
 
@@ -98,27 +113,30 @@ public class TeamServiceImpl implements TeamService {
         LambdaQueryWrapper<User> userWrapper = new LambdaQueryWrapper<>();
         Map<Integer, User> userIndex = new HashMap<>();
         //查找关系表
-        relWrapper.eq(UserTeamRelation::getTeamId, teamId).eq(isAdmin, UserTeamRelation::isAdmin, isAdmin).orderByDesc(UserTeamRelation::getJoinTime);
+        relWrapper.eq(UserTeamRelation::getTeamId, teamId).eq(isAdmin, UserTeamRelation::getAdmin, isAdmin).orderByDesc(UserTeamRelation::getJoinTime);
         userTeamRelationDao.selectPage(relPage, relWrapper);
         List<UserTeamRelation> relList = relPage.getRecords();
-        //查找用户
-        userWrapper.in(User::getId, relList.stream().map(UserTeamRelation::getUserId).toList());
-        List<User> users = userDao.selectList(userWrapper);
-        for (User user : users) {
-            userIndex.put(user.getId(), user);
-        }
-        //封装dto
-        List<MemberDTO> dtoList = new ArrayList<>();
-        for (UserTeamRelation relation : relList) {
-            MemberDTO dto = new MemberDTO();
-            User user=userIndex.get(relation.getUserId());
-            BeanUtil.copyProperties(user,dto);
-            dto.setAdmin(relation.isAdmin());
-            dtoList.add(dto);
+        if (!relList.isEmpty()) {        //查找用户
+            userWrapper.in(User::getId, relList.stream().map(UserTeamRelation::getUserId).toList());
+            List<User> users = userDao.selectList(userWrapper);
+            for (User user : users) {
+                userIndex.put(user.getId(), user);
+            }
+            //封装dto
+            List<MemberDTO> dtoList = new ArrayList<>();
+            for (UserTeamRelation relation : relList) {
+                MemberDTO dto = new MemberDTO();
+                User user = userIndex.get(relation.getUserId());
+                BeanUtil.copyProperties(user, dto);
+                dto.setAdmin(relation.getAdmin());
+                dtoList.add(dto);
+            }
+            dtoPage.setRecords(dtoList);
+        } else {
+            dtoPage.setRecords(List.of());
         }
         dtoPage.setPages(relPage.getPages());
         dtoPage.setTotal(relPage.getTotal());
-        dtoPage.setRecords(dtoList);
         return dtoPage;
     }
 
@@ -135,6 +153,7 @@ public class TeamServiceImpl implements TeamService {
         relation.setAdmin(true);
         relation.setTeamId(team.getId());
         relation.setUserId(teamAddForm.getAdminId());
+        relation.setJoinTime(LocalDateTime.now());
         return userTeamRelationDao.insert(relation) > 0;
     }
 
@@ -182,7 +201,7 @@ public class TeamServiceImpl implements TeamService {
     @Override
     public long countTeamUsers(Integer teamId, boolean isAdmin) {
         LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserTeamRelation::getTeamId, teamId).eq(isAdmin, UserTeamRelation::isAdmin, isAdmin);
+        wrapper.eq(UserTeamRelation::getTeamId, teamId).eq(isAdmin, UserTeamRelation::getAdmin, isAdmin);
         return userTeamRelationDao.selectCount(wrapper);
     }
 }

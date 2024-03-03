@@ -1,7 +1,9 @@
 package com.dhu.utils;
 
 import cn.hutool.http.HttpRequest;
+import com.dhu.constants.BaseConstants;
 import com.dhu.exception.HttpException;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.CharEncoding;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -14,12 +16,16 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.UriUtils;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -117,9 +123,9 @@ public class HttpHelper {
     public String upload(String url, String uuid, MultipartFile file, Map<String, Object> params) {
         File[] upFiles = new File[1];
         upFiles[0] = BaseUtils.toFile(file);
-        File reFile=new File(upFiles[0].getParentFile(), uuid + ".pdf");
+        File reFile = new File(upFiles[0].getParentFile(), uuid + BaseConstants.PAPER_TYPE);
         upFiles[0].renameTo(reFile);
-        upFiles[0]=reFile;
+        upFiles[0] = reFile;
         Map<String, Object> data = new HashMap<>(params);
         data.put("files", upFiles);
         return HttpRequest.post(baseURL + url)
@@ -127,5 +133,44 @@ public class HttpHelper {
                 .contentType("multipart/form-data")
                 .execute()
                 .body();
+    }
+
+    //下载文件
+    public void downloadFile(String url, Map<String, String> params, HttpServletResponse webResponse, String filename) {
+        //url参数拼接
+        if (params != null && !params.isEmpty()) {
+            url = url + '?' +
+                    String.join("&", params.entrySet().stream().map(entry -> entry.getKey() + '=' + entry.getValue()).toArray(String[]::new));
+        }
+        HttpClient httpClient = getHttpClient();
+        HttpResponse response = null;
+        HttpGet httpGet = new HttpGet(baseURL + url);
+        httpGet.setConfig(CONFIG_BUILDER.build());
+        try {
+            response = httpClient.execute(httpGet);
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                //设置下载的文件名
+                try (InputStream inputStream = entity.getContent(); BufferedInputStream bis = new BufferedInputStream(inputStream)) {
+                    filename = UriUtils.encode(filename, "UTF-8");
+                    webResponse.setContentType("application/octet-stream");
+                    webResponse.addHeader("Content-Disposition", "attachment;fileName=" + filename);
+                    webResponse.addHeader("Access-Control-Expose-Headers", "Content-Disposition");
+                    byte[] buffer = new byte[1024];
+                    OutputStream os = webResponse.getOutputStream();
+                    int i = bis.read(buffer);
+                    while (i != -1) {
+                        os.write(buffer, 0, i);
+                        i = bis.read(buffer);
+                    }
+                } catch (Exception e) {
+                    throw new HttpException("文件下载失败");
+                }
+            }
+        } catch (IOException e) {
+            throw new HttpException(e.getMessage());
+        } finally {
+            consume(response);
+        }
     }
 }

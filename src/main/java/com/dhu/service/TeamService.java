@@ -7,7 +7,6 @@ import com.dhu.dto.TeamDTO;
 import com.dhu.entity.Team;
 
 public interface TeamService {
-
     //查询个人的团队信息
     IPage<TeamDTO> queryTeams(int current, int size, Integer userId, boolean isAdmin);
 
