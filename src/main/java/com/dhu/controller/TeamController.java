@@ -25,6 +25,15 @@ public class TeamController {
     @Autowired
     UserTeamRelationService userTeamRelationService;
 
+    //查询单个的团队信息
+    @GetMapping("/{teamId}")
+    Result get(@PathVariable Integer teamId){
+        if (teamId==null||teamId<=0){
+            return Result.getErr().setMsg("查询参数错误");
+        }
+        return Result.nullFilterData("team",teamService.querySingle(teamId));
+    }
+
     //查询个人的团队信息
     @GetMapping("/query")
     Result queryList(@RequestParam int current, @RequestParam int size, @RequestParam("is_admin") Boolean isAdmin) {
@@ -40,7 +49,7 @@ public class TeamController {
         if (current <= 0 || size <= 0 || teamId == null || teamId <= 0 || isAdmin == null) {
             return Result.getErr().setMsg("查询参数错误");
         }
-        return Result.nullFilterData("members", teamService.queryTeams(current, size, teamId, isAdmin));
+        return Result.nullFilterData("members", teamService.queryMembers(current, size, teamId, isAdmin));
     }
 
     //新建团队

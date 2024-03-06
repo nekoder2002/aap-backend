@@ -11,6 +11,7 @@ import com.dhu.dao.UserDao;
 import com.dhu.dto.KbAddFormDTO;
 import com.dhu.dto.KbDTO;
 import com.dhu.entity.KnowledgeBase;
+import com.dhu.entity.User;
 import com.dhu.exception.HttpException;
 import com.dhu.exception.NotExistException;
 import com.dhu.exception.OperationException;
@@ -40,11 +41,37 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     private HttpHelper httpHelper;
 
     @Override
+    public KbDTO querySingle(Integer kbId) {
+        KnowledgeBase knowledgeBase = knowledgeBaseDao.selectById(kbId);
+        KbDTO dto = new KbDTO();
+        BeanUtil.copyProperties(knowledgeBase, dto);
+        User user = userDao.selectById(knowledgeBase.getBuilderId());
+        dto.setBuilderName(user.getName());
+        return null;
+    }
+
+    @Override
+    public List<KbDTO> queryKbLimit(Integer userId, int limit) {
+        LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KnowledgeBase::getBuilderId, userId).eq(KnowledgeBase::getBelongsToTeam, false).orderByDesc(KnowledgeBase::getId).last("limit " + limit);
+        List<KnowledgeBase> list = knowledgeBaseDao.selectList(wrapper);
+        List<KbDTO> dtoList = new ArrayList<>();
+        User user = userDao.selectById(userId);
+        for (KnowledgeBase kb : list) {
+            KbDTO kbDTO = new KbDTO();
+            BeanUtil.copyProperties(kb, kbDTO);
+            kbDTO.setBuilderName(user.getName());
+            dtoList.add(kbDTO);
+        }
+        return dtoList;
+    }
+
+    @Override
     public IPage<KbDTO> queryTeamKnowledgeBases(int current, int size, Integer teamId) {
         IPage<KnowledgeBase> page = new Page<>(current, size);
         IPage<KbDTO> dtoPage = new Page<>(current, size);
         LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(KnowledgeBase::getTeamId, teamId).orderByDesc(KnowledgeBase::getId);
+        wrapper.eq(KnowledgeBase::getTeamId, teamId).eq(KnowledgeBase::getBelongsToTeam, true).orderByDesc(KnowledgeBase::getId);
         knowledgeBaseDao.selectPage(page, wrapper);
         List<KnowledgeBase> list = page.getRecords();
         List<KbDTO> dtoList = new ArrayList<>();
@@ -65,14 +92,15 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         IPage<KnowledgeBase> page = new Page<>(current, size);
         IPage<KbDTO> dtoPage = new Page<>(current, size);
         LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(KnowledgeBase::getBuilderId, userId).orderByDesc(KnowledgeBase::getId);
+        wrapper.eq(KnowledgeBase::getBuilderId, userId).eq(KnowledgeBase::getBelongsToTeam, false).orderByDesc(KnowledgeBase::getId);
         knowledgeBaseDao.selectPage(page, wrapper);
         List<KnowledgeBase> list = page.getRecords();
         List<KbDTO> dtoList = new ArrayList<>();
+        User user = userDao.selectById(userId);
         for (KnowledgeBase kb : list) {
             KbDTO dto = new KbDTO();
             BeanUtil.copyProperties(kb, dto);
-            dto.setBuilderName(userDao.selectById(kb.getBuilderId()).getName());
+            dto.setBuilderName(user.getName());
             dtoList.add(dto);
         }
         dtoPage.setPages(page.getPages());
@@ -132,7 +160,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
 
     @Override
     public boolean deleteKnowledgeBases(List<Integer> kbIds) {
-        if (!kbIds.isEmpty()){
+        if (!kbIds.isEmpty()) {
             for (Integer kbId : kbIds) {
                 //查询uuid
                 KnowledgeBase knowledgeBase = knowledgeBaseDao.selectById(kbId);
@@ -153,7 +181,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
                 }
             }
             return knowledgeBaseDao.deleteBatchIds(kbIds) == kbIds.size();
-        }else{
+        } else {
             return true;
         }
     }

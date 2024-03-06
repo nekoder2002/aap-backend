@@ -7,10 +7,10 @@ import java.util.List;
 
 public interface ChatService {
     // 单论文对话
-    PaperChatDTO chatWithPaper(PaperChatDTO paperChat);
+    boolean chatWithPaper(PaperChatDTO paperChat);
 
     // 多论文对话
-    KbChatDTO chatWitHkb(KbChatDTO kbChat);
+    boolean chatWithKb(KbChatDTO kbChat);
 
     //查询知识库近期对话
     List<PaperChatDTO> queryPaperChatRecords(Integer paperId, Integer userId, int limit);

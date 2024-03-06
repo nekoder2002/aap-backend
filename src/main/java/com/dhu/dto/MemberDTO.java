@@ -1,9 +1,13 @@
 package com.dhu.dto;
 
+import java.time.LocalDateTime;
+
 public class MemberDTO {
     private Integer id;
     private String email;
     private String name;
+
+    private LocalDateTime time;
     private Boolean isAdmin;
 
     public Integer getId() {
@@ -36,5 +40,13 @@ public class MemberDTO {
 
     public void setAdmin(Boolean admin) {
         isAdmin = admin;
+    }
+
+    public LocalDateTime getTime() {
+        return time;
+    }
+
+    public void setTime(LocalDateTime time) {
+        this.time = time;
     }
 }

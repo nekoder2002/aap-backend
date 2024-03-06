@@ -20,12 +20,15 @@ import com.dhu.entity.Paper;
 import com.dhu.entity.PaperChat;
 import com.dhu.exception.NotExistException;
 import com.dhu.service.ChatService;
+import com.dhu.utils.BaseUtils;
 import com.dhu.utils.HttpHelper;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -44,7 +47,7 @@ public class ChatServiceImpl implements ChatService {
     private HttpHelper httpHelper;
 
     @Override
-    public PaperChatDTO chatWithPaper(PaperChatDTO paperChat) {
+    public boolean chatWithPaper(PaperChatDTO paperChat) {
         //查询paper所在的知识库
         Paper paper = paperDao.selectById(paperChat.getPaperId());
         if (paper == null) {
@@ -76,16 +79,11 @@ public class ChatServiceImpl implements ChatService {
         PaperChat chat = new PaperChat();
         BeanUtil.copyProperties(paperChat, chat);
         chat.setData(docs.toString());
-        if (paperChatDao.insert(chat) > 0) {
-            paperChat.setId(chat.getId());
-            return paperChat;
-        } else {
-            return null;
-        }
+        return paperChatDao.insert(chat) > 0;
     }
 
     @Override
-    public KbChatDTO chatWitHkb(KbChatDTO kbChat) {
+    public boolean chatWithKb(KbChatDTO kbChat) {
         KnowledgeBase kb = knowledgeBaseDao.selectById(kbChat.getKnowledgeBaseId());
         if (kb == null) {
             throw new NotExistException("目标知识库不存在，对话失败");
@@ -103,30 +101,29 @@ public class ChatServiceImpl implements ChatService {
         json.fluentPut("model_name", "chatglm3-6b");
         json.fluentPut("temperature", 0.7);
         json.fluentPut("max_tokens", 1024);
-        json.fluentPut("prompt_name","default");
+        json.fluentPut("prompt_name", "default");
         String result = httpHelper.post(InterfaceUrlConstants.KB_CHAT, json.toString());
         JSONObject object = JSONObject.parseObject(result);
-        String answer = object.getString("answer");
-        JSONArray docs = object.getJSONArray("docs");
-        //存入数据库
+        String answer = object.getString("answer");        //存入数据库
         kbChat.setAnswer(answer);
-        kbChat.setDocs(docs.toJavaList(KbDocDTO.class));
-        KnowledgeBaseChat chat=new KnowledgeBaseChat();
+        KnowledgeBaseChat chat = new KnowledgeBaseChat();
         BeanUtil.copyProperties(kbChat, chat);
-        chat.setData(docs.toString());
-        if (knowledgeBaseChatDao.insert(chat) > 0) {
-            kbChat.setId(chat.getId());
-            return kbChat;
+        if (!object.getString("docs").contains("未找到")) {
+            JSONArray docs = object.getJSONArray("docs");
+            kbChat.setDocs(docs.toJavaList(KbDocDTO.class));
+            chat.setData(docs.toString());
         } else {
-            return null;
+            kbChat.setDocs(List.of());
+            chat.setData("[]");
         }
+        return knowledgeBaseChatDao.insert(chat) > 0;
     }
 
     @Override
     public List<PaperChatDTO> queryPaperChatRecords(Integer paperId, Integer userId, int limit) {
         List<PaperChatDTO> result = new LinkedList<>();
         LambdaQueryWrapper<PaperChat> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(PaperChat::getPaperId, paperId).eq(PaperChat::getChatterId, userId).orderByDesc(PaperChat::getChatTime).last("limit " + limit);
+        wrapper.eq(PaperChat::getPaperId, paperId).eq(PaperChat::getChatterId, userId).orderByAsc(PaperChat::getChatTime).last("limit " + limit);
         List<PaperChat> paperChats = paperChatDao.selectList(wrapper);
         for (PaperChat chat : paperChats) {
             PaperChatDTO dto = new PaperChatDTO();
@@ -141,14 +138,20 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public List<KbChatDTO> queryKbChatRecords(Integer kbId, Integer userId, int limit) {
         List<KbChatDTO> result = new LinkedList<>();
-        LambdaQueryWrapper<KnowledgeBaseChat> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(KnowledgeBaseChat::getKnowledgeBaseId, kbId).eq(KnowledgeBaseChat::getChatterId, userId).orderByDesc(KnowledgeBaseChat::getChatTime).last("limit " + limit);
-        List<KnowledgeBaseChat> paperChats = knowledgeBaseChatDao.selectList(wrapper);
+        LambdaQueryWrapper<KnowledgeBaseChat> chatWrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<Paper> paperWrapper = new LambdaQueryWrapper<>();
+        chatWrapper.eq(KnowledgeBaseChat::getKnowledgeBaseId, kbId).eq(KnowledgeBaseChat::getChatterId, userId).orderByAsc(KnowledgeBaseChat::getChatTime).last("limit " + limit);
+        List<KnowledgeBaseChat> paperChats = knowledgeBaseChatDao.selectList(chatWrapper);
         for (KnowledgeBaseChat chat : paperChats) {
             KbChatDTO dto = new KbChatDTO();
             BeanUtil.copyProperties(chat, dto);
             //封装文档数组
             dto.setDocs(JSONArray.parseArray(chat.getData(), KbDocDTO.class));
+            for (KbDocDTO doc : dto.getDocs()) {
+                Paper paper = paperDao.selectOne(paperWrapper.eq(Paper::getIndexUUID, doc.getFileName().split("[.]")[0]));
+                doc.setFileName(paper.getName());
+                paperWrapper.clear();
+            }
             result.add(dto);
         }
         return result;

@@ -1,5 +1,6 @@
 package com.dhu.controller;
 
+import com.dhu.constants.BaseConstants;
 import com.dhu.dto.KbAddFormDTO;
 import com.dhu.entity.KnowledgeBase;
 import com.dhu.service.KnowledgeBaseService;
@@ -16,6 +17,21 @@ public class KnowLedgeBaseController {
     @Autowired
     KnowledgeBaseService knowledgeBaseService;
 
+    //获取知识库信息列表
+    @GetMapping("/list")
+    Result getList() {
+        return Result.nullFilterData("kbs", knowledgeBaseService.queryKbLimit(UserHolder.getUser().getId(), BaseConstants.QUICK_SEARCH_NUM));
+    }
+
+    //根据id获取知识库信息
+    @GetMapping("/{kbId}")
+    Result get(@PathVariable Integer kbId) {
+        if (kbId == null || kbId <= 0) {
+            return Result.getErr().setMsg("查询参数错误");
+        }
+        return Result.nullFilterData("kb", knowledgeBaseService.querySingle(kbId));
+    }
+
     //获取个人的知识库列表
     @GetMapping("/query")
     Result queryList(@RequestParam int current, @RequestParam int size) {
@@ -23,6 +39,15 @@ public class KnowLedgeBaseController {
             return Result.getErr().setMsg("查询参数错误");
         }
         return Result.nullFilterData("kbs", knowledgeBaseService.queryUserKnowledgeBases(current, size, UserHolder.getUser().getId()));
+    }
+
+    //获取团队知识库列表
+    @GetMapping("/query_team")
+    Result queryListByTeam(@RequestParam int current, @RequestParam int size, @RequestParam("team_id") Integer teamId) {
+        if (current <= 0 || size <= 0) {
+            return Result.getErr().setMsg("查询参数错误");
+        }
+        return Result.nullFilterData("kbs", knowledgeBaseService.queryTeamKnowledgeBases(current, size, teamId));
     }
 
     //插入知识库

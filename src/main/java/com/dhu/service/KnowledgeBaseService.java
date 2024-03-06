@@ -8,6 +8,12 @@ import com.dhu.entity.KnowledgeBase;
 import java.util.List;
 
 public interface KnowledgeBaseService {
+    //查询单个知识库信息
+    KbDTO querySingle(Integer kbId);
+
+    //查询前十个自己的知识库
+    List<KbDTO> queryKbLimit(Integer userId,int limit);
+
     //获取团队的知识库列表
     IPage<KbDTO> queryTeamKnowledgeBases(int current, int size, Integer teamId);
 

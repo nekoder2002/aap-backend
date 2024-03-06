@@ -54,6 +54,20 @@ public class TeamServiceImpl implements TeamService {
     private StringRedisTemplate stringRedisTemplate;
 
     @Override
+    public TeamDTO querySingle(Integer teamId) {
+        LambdaQueryWrapper<UserTeamRelation> relWrapper = new LambdaQueryWrapper<>();
+        Team team = teamDao.selectById(teamId);
+        TeamDTO dto = new TeamDTO();
+        BeanUtil.copyProperties(team, dto);
+        relWrapper.eq(UserTeamRelation::getTeamId, teamId).eq(UserTeamRelation::getAdmin, true);
+        UserTeamRelation relation = userTeamRelationDao.selectOne(relWrapper);
+        User user = userDao.selectById(relation.getUserId());
+        dto.setAdminId(user.getId());
+        dto.setAdminName(user.getName());
+        return dto;
+    }
+
+    @Override
     public IPage<TeamDTO> queryTeams(int current, int size, Integer userId, boolean isAdmin) {
         IPage<UserTeamRelation> relPage = new Page<>(current, size);
         IPage<TeamDTO> dtoPage = new Page<>(current, size);
@@ -83,14 +97,14 @@ public class TeamServiceImpl implements TeamService {
             for (User user : users) {
                 userIndex.put(user.getId(), user);
             }
-            for (UserTeamRelation relation:adminList) {
+            for (UserTeamRelation relation : adminList) {
                 utMap.put(relation.getTeamId(), userIndex.get(relation.getUserId()));
             }
             //封装dto
             List<TeamDTO> dtoList = new ArrayList<>();
             for (UserTeamRelation relation : relList) {
                 TeamDTO dto = new TeamDTO();
-                User user=utMap.get(relation.getTeamId());
+                User user = utMap.get(relation.getTeamId());
                 BeanUtil.copyProperties(teamIndex.get(relation.getTeamId()), dto);
                 dto.setAdminName(user.getName());
                 dto.setAdminId(user.getId());
@@ -113,7 +127,7 @@ public class TeamServiceImpl implements TeamService {
         LambdaQueryWrapper<User> userWrapper = new LambdaQueryWrapper<>();
         Map<Integer, User> userIndex = new HashMap<>();
         //查找关系表
-        relWrapper.eq(UserTeamRelation::getTeamId, teamId).eq(isAdmin, UserTeamRelation::getAdmin, isAdmin).orderByDesc(UserTeamRelation::getJoinTime);
+        relWrapper.eq(UserTeamRelation::getTeamId, teamId).eq(isAdmin, UserTeamRelation::getAdmin, isAdmin).orderByDesc(UserTeamRelation::getAdmin);
         userTeamRelationDao.selectPage(relPage, relWrapper);
         List<UserTeamRelation> relList = relPage.getRecords();
         if (!relList.isEmpty()) {        //查找用户
@@ -129,6 +143,7 @@ public class TeamServiceImpl implements TeamService {
                 User user = userIndex.get(relation.getUserId());
                 BeanUtil.copyProperties(user, dto);
                 dto.setAdmin(relation.getAdmin());
+                dto.setTime(relation.getJoinTime());
                 dtoList.add(dto);
             }
             dtoPage.setRecords(dtoList);

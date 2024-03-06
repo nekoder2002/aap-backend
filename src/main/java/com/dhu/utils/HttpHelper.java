@@ -9,6 +9,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -47,7 +48,7 @@ public class HttpHelper {
 
         CONNECT_MANAGER.setMaxTotal(1000);
         CONNECT_MANAGER.setDefaultMaxPerRoute(50);
-        CONFIG_BUILDER.setSocketTimeout(3000)//设置客户端等待服务端返回数据的超时时间
+        CONFIG_BUILDER.setSocketTimeout(1000 * 60)//设置客户端等待服务端返回数据的超时时间
                 .setConnectTimeout(1000)//设置客户端发起TCP连接请求的超时时间
                 .setConnectionRequestTimeout(3000);//设置客户端从连接池获取链接的超时时间
     }
@@ -80,7 +81,7 @@ public class HttpHelper {
         httpPost.setConfig(CONFIG_BUILDER.build());
         httpPost.setHeader("Content-type", MediaType.APPLICATION_JSON_VALUE);
         try {
-            httpPost.setEntity(new StringEntity(body));
+            httpPost.setEntity(new StringEntity(body, "UTF-8"));
             response = httpClient.execute(httpPost);
             HttpEntity entity = response.getEntity();
             if (entity != null) {
