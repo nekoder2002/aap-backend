@@ -1,10 +1,15 @@
 package com.dhu.utils;
 
 import com.dhu.exception.FileException;
+import org.springframework.data.redis.util.ByteUtils;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Random;
 
 public class BaseUtils {

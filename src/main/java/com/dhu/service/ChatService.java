@@ -19,6 +19,12 @@ public interface ChatService {
     List<KbChatDTO> queryKbChatRecords(Integer kbId, Integer userId, int limit);
 
     //删除知识库所有对话记录
+    boolean deleteChatByKb(Integer kbId);
+
+    //删除论文所有对话记录
+    boolean deleteChatByPaper(Integer paperId);
+
+    //删除知识库所有对话记录
     boolean deleteChatByKb(Integer kbId, Integer userId);
 
     //删除论文所有对话记录

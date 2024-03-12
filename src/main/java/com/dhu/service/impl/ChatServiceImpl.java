@@ -20,15 +20,12 @@ import com.dhu.entity.Paper;
 import com.dhu.entity.PaperChat;
 import com.dhu.exception.NotExistException;
 import com.dhu.service.ChatService;
-import com.dhu.utils.BaseUtils;
 import com.dhu.utils.HttpHelper;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -68,17 +65,21 @@ public class ChatServiceImpl implements ChatService {
         json.fluentPut("stream", false);
         json.fluentPut("model_name", "chatglm3-6b");
         json.fluentPut("temperature", 0.7);
-        json.fluentPut("max_tokens", 800);
+        json.fluentPut("max_tokens", 1024);
         String result = httpHelper.post(InterfaceUrlConstants.PAPER_CHAT, json.toString());
         JSONObject object = JSONObject.parseObject(result);
         String answer = object.getString("answer");
-        JSONArray docs = object.getJSONArray("docs");
-        //存入数据库
         paperChat.setAnswer(answer);
-        paperChat.setDocs(docs.toJavaList(PaperDocDTO.class));
         PaperChat chat = new PaperChat();
         BeanUtil.copyProperties(paperChat, chat);
-        chat.setData(docs.toString());
+        if (!object.getString("docs").contains("未找到")) {
+            JSONArray docs = object.getJSONArray("docs");
+            paperChat.setDocs(docs.toJavaList(PaperDocDTO.class));
+            chat.setData(docs.toString());
+        } else {
+            paperChat.setDocs(List.of());
+            chat.setData("[]");
+        }
         return paperChatDao.insert(chat) > 0;
     }
 
@@ -149,7 +150,13 @@ public class ChatServiceImpl implements ChatService {
             dto.setDocs(JSONArray.parseArray(chat.getData(), KbDocDTO.class));
             for (KbDocDTO doc : dto.getDocs()) {
                 Paper paper = paperDao.selectOne(paperWrapper.eq(Paper::getIndexUUID, doc.getFileName().split("[.]")[0]));
-                doc.setFileName(paper.getName());
+                if (paper != null) {
+                    doc.setFileName(paper.getName());
+                    doc.setId(paper.getId());
+                } else {
+                    doc.setFileName("已删除文件");
+                    doc.setId(-1);
+                }
                 paperWrapper.clear();
             }
             result.add(dto);
@@ -158,16 +165,30 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public boolean deleteChatByKb(Integer kbId) {
+        LambdaQueryWrapper<KnowledgeBaseChat> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KnowledgeBaseChat::getKnowledgeBaseId, kbId);
+        return knowledgeBaseChatDao.delete(wrapper) >= 0;
+    }
+
+    @Override
+    public boolean deleteChatByPaper(Integer paperId) {
+        LambdaQueryWrapper<PaperChat> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(PaperChat::getPaperId, paperId);
+        return paperChatDao.delete(wrapper) >= 0;
+    }
+
+    @Override
     public boolean deleteChatByKb(Integer kbId, Integer userId) {
         LambdaQueryWrapper<KnowledgeBaseChat> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(KnowledgeBaseChat::getKnowledgeBaseId, kbId).eq(KnowledgeBaseChat::getChatterId, userId);
-        return knowledgeBaseChatDao.delete(wrapper) > 0;
+        return knowledgeBaseChatDao.delete(wrapper) >= 0;
     }
 
     @Override
     public boolean deleteChatByPaper(Integer paperId, Integer userId) {
         LambdaQueryWrapper<PaperChat> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(PaperChat::getPaperId, paperId).eq(PaperChat::getChatterId, userId);
-        return paperChatDao.delete(wrapper) > 0;
+        return paperChatDao.delete(wrapper) >= 0;
     }
 }

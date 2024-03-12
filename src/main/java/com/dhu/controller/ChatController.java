@@ -16,8 +16,6 @@ import org.springframework.web.bind.annotation.*;
 public class ChatController {
     @Autowired
     private ChatService chatService;
-
-
     // 单论文对话
     @PostMapping("/paper")
     Result chatWithPaper(@RequestBody PaperChatDTO paperChat) {
@@ -27,8 +25,6 @@ public class ChatController {
     // 多论文对话
     @PostMapping("/kb")
     Result chatWitHkb(@RequestBody KbChatDTO kbChat) {
-        System.out.println(BaseUtils.getEncoding(kbChat.getQuestion()));
-        System.out.println(kbChat.getQuestion());
         return Result.verifySave(chatService.chatWithKb(kbChat));
     }
 

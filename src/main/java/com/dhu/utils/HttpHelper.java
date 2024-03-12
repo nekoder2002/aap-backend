@@ -2,11 +2,13 @@ package com.dhu.utils;
 
 import cn.hutool.http.HttpRequest;
 import com.dhu.constants.BaseConstants;
+import com.dhu.dto.TranslationDTO;
 import com.dhu.exception.HttpException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.CharEncoding;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -15,6 +17,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -22,12 +25,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriUtils;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -41,6 +48,15 @@ public class HttpHelper {
 
     @Value("${kb-qa-interface-prefix}")
     private String baseURL;
+
+    @Value("${translation.url}")
+    private String translationURL;
+
+    @Value("${translation.appid}")
+    private String translationAppId;
+
+    @Value("${translation.key}")
+    private String translationKey;
 
     static {
         CONNECT_MANAGER = new PoolingHttpClientConnectionManager(60, TimeUnit.SECONDS);
@@ -153,7 +169,7 @@ public class HttpHelper {
             if (entity != null) {
                 //设置下载的文件名
                 try (InputStream inputStream = entity.getContent(); BufferedInputStream bis = new BufferedInputStream(inputStream)) {
-                    filename = UriUtils.encode(filename, "UTF-8");
+                    filename = UriUtils.encode(filename, CharEncoding.UTF_8);
                     webResponse.setContentType("application/octet-stream");
                     webResponse.addHeader("Content-Disposition", "attachment;fileName=" + filename);
                     webResponse.addHeader("Access-Control-Expose-Headers", "Content-Disposition");
@@ -173,5 +189,76 @@ public class HttpHelper {
         } finally {
             consume(response);
         }
+    }
+
+    //预览文件
+    public void previewFile(String url, Map<String, String> params, HttpServletResponse webResponse, String filename) {
+        //url参数拼接
+        if (params != null && !params.isEmpty()) {
+            url = url + '?' +
+                    String.join("&", params.entrySet().stream().map(entry -> entry.getKey() + '=' + entry.getValue()).toArray(String[]::new));
+        }
+        HttpClient httpClient = getHttpClient();
+        HttpResponse response = null;
+        HttpGet httpGet = new HttpGet(baseURL + url);
+        httpGet.setConfig(CONFIG_BUILDER.build());
+        try {
+            response = httpClient.execute(httpGet);
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                //设置下载的文件名
+                try (InputStream inputStream = entity.getContent(); BufferedInputStream bis = new BufferedInputStream(inputStream)) {
+                    filename = UriUtils.encode(filename, CharEncoding.UTF_8);
+                    webResponse.setContentType("application/pdf");
+                    webResponse.addHeader("Content-Disposition", "inline;fileName=" + filename);
+                    webResponse.addHeader("Access-Control-Expose-Headers", "Content-Disposition");
+                    byte[] buffer = new byte[1024];
+                    OutputStream os = webResponse.getOutputStream();
+                    int i = bis.read(buffer);
+                    while (i != -1) {
+                        os.write(buffer, 0, i);
+                        i = bis.read(buffer);
+                    }
+                } catch (Exception e) {
+                    throw new HttpException("文件获取失败");
+                }
+            }
+        } catch (IOException e) {
+            throw new HttpException(e.getMessage());
+        } finally {
+            consume(response);
+        }
+    }
+
+    //请求翻译
+    public String translate(String text, String from, String to) {
+        text = text.replace("\n", " ");//去掉换行符
+        String salt = String.valueOf(System.currentTimeMillis());
+        String value = translationAppId + text + salt + translationKey;
+        String sign = DigestUtils.md5DigestAsHex(value.getBytes(StandardCharsets.UTF_8));
+        List<NameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair("q", text));
+        params.add(new BasicNameValuePair("from", from));
+        params.add(new BasicNameValuePair("to", to));
+        params.add(new BasicNameValuePair("salt", salt));
+        params.add(new BasicNameValuePair("appid", translationAppId));
+        params.add(new BasicNameValuePair("sign", sign));
+        HttpClient httpClient = getHttpClient();
+        HttpResponse response = null;
+        HttpPost httpPost = new HttpPost(translationURL);
+        httpPost.setConfig(CONFIG_BUILDER.build());
+        try {
+            httpPost.setEntity(new UrlEncodedFormEntity(params, CharEncoding.UTF_8));
+            response = httpClient.execute(httpPost);
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                return EntityUtils.toString(entity, CharEncoding.UTF_8);
+            }
+        } catch (IOException e) {
+            throw new HttpException(e.getMessage());
+        } finally {
+            consume(response);
+        }
+        return null;
     }
 }

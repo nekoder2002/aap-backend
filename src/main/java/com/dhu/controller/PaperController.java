@@ -1,5 +1,6 @@
 package com.dhu.controller;
 
+import com.dhu.dto.TranslationDTO;
 import com.dhu.entity.Paper;
 import com.dhu.service.PaperService;
 import com.dhu.utils.UserHolder;
@@ -16,6 +17,15 @@ import java.util.List;
 public class PaperController {
     @Autowired
     private PaperService paperService;
+
+    //获取单个论文
+    @GetMapping("/{paperId}")
+    Result get(@PathVariable Integer paperId) {
+        if (paperId == null || paperId <= 0) {
+            return Result.getErr().setMsg("查询参数错误");
+        }
+        return Result.nullFilterData("paper", paperService.querySingle(paperId));
+    }
 
     //获取知识库的Paper列表
     @GetMapping("/query")
@@ -63,6 +73,18 @@ public class PaperController {
     //下载论文
     @GetMapping("/download")
     public void download(@RequestParam("paper_id") Integer paperId, HttpServletResponse response) {
-        paperService.download(paperId,response);
+        paperService.download(paperId, response);
+    }
+
+    //预览论文
+    @GetMapping("/preview")
+    public void preview(@RequestParam("paper_id") Integer paperId, HttpServletResponse response) {
+        paperService.preview(paperId, response);
+    }
+
+    //翻译接口
+    @PostMapping("/translate")
+    public Result translate(@RequestBody TranslationDTO translationDTO) {
+        return Result.nullFilterData("text", paperService.translate(translationDTO));
     }
 }

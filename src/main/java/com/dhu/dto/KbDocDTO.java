@@ -4,11 +4,13 @@ import com.alibaba.fastjson.annotation.JSONField;
 
 public class KbDocDTO {
     private Integer index;
+    private Integer id;
     @JSONField(name = "filename")
     private String fileName;
     private String url;
     @JSONField(name = "page_content")
     private String pageContent;
+
     private Double score;
 
     public Integer getIndex() {
@@ -17,6 +19,14 @@ public class KbDocDTO {
 
     public void setIndex(Integer index) {
         this.index = index;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public String getFileName() {

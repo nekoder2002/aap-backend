@@ -29,4 +29,9 @@ email:
   from-email: massd2002@163.com
   auth-code: 2368018
 
+translation:
+  url: http://api.fanyi.baidu.com/api/trans/vip/translate
+  appid: 20221028001421795
+  key: 1yx_jBNlngraZCtdEGbu
+
 kb-qa-interface-prefix: http://localhost:7861

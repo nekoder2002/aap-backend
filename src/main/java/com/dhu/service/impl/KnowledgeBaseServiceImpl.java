@@ -15,6 +15,7 @@ import com.dhu.entity.User;
 import com.dhu.exception.HttpException;
 import com.dhu.exception.NotExistException;
 import com.dhu.exception.OperationException;
+import com.dhu.service.ChatService;
 import com.dhu.service.KnowledgeBaseService;
 import com.dhu.service.PaperService;
 import com.dhu.utils.HttpHelper;
@@ -37,6 +38,8 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     private UserDao userDao;
     @Autowired
     private PaperService paperService;
+    @Autowired
+    private ChatService chatService;
     @Resource
     private HttpHelper httpHelper;
 
@@ -47,7 +50,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         BeanUtil.copyProperties(knowledgeBase, dto);
         User user = userDao.selectById(knowledgeBase.getBuilderId());
         dto.setBuilderName(user.getName());
-        return null;
+        return dto;
     }
 
     @Override
@@ -147,7 +150,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         String result = httpHelper.post(InterfaceUrlConstants.DEL_KNOWLEDGE_BASE, "\"" + knowledgeBase.getIndexUUID() + "\"");
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
-            return paperService.deletePaperByKb(kbId) && knowledgeBaseDao.deleteById(kbId) > 0;
+            return chatService.deleteChatByKb(kbId) && paperService.deletePaperByKb(kbId) && knowledgeBaseDao.deleteById(kbId) > 0;
         } else {
             throw new HttpException("接口访问：删除知识库失败");
         }
@@ -176,7 +179,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
                 }
             }
             for (Integer kbId : kbIds) {
-                if (paperService.deletePaperByKb(kbId)) {
+                if (!paperService.deletePaperByKb(kbId) && !chatService.deleteChatByKb(kbId)) {
                     throw new OperationException("删除知识库出现错误");
                 }
             }
