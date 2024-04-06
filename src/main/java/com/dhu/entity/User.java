@@ -12,6 +12,9 @@ public class User {
     private String email;
     private String name;
     private String password;
+    private String school;
+    private String major;
+    private String college;
     @TableField("register_time")
     private LocalDateTime registerTime;
     @TableLogic
@@ -65,5 +68,29 @@ public class User {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public String getSchool() {
+        return school;
+    }
+
+    public void setSchool(String school) {
+        this.school = school;
+    }
+
+    public String getMajor() {
+        return major;
+    }
+
+    public void setMajor(String major) {
+        this.major = major;
+    }
+
+    public String getCollege() {
+        return college;
+    }
+
+    public void setCollege(String college) {
+        this.college = college;
     }
 }

@@ -50,6 +50,12 @@ public class UserController {
         return Result.nullFilterData("user", userService.getInfo(UserHolder.getUser().getId()));
     }
 
+    //根据id获取用户信息
+    @GetMapping("/{userId}")
+    public Result getInfoById(@PathVariable Integer userId) {
+        return Result.nullFilterData("user", userService.getInfo(userId));
+    }
+
     //更新
     @PostMapping("/update")
     public Result update(@RequestBody User user) {

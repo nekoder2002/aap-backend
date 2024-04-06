@@ -4,6 +4,9 @@ public class UserDTO {
     private String token;
     private Integer id;
     private String email;
+    private String school;
+    private String major;
+    private String college;
     private String name;
     public String getToken() {
         return token;
@@ -35,5 +38,29 @@ public class UserDTO {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getSchool() {
+        return school;
+    }
+
+    public void setSchool(String school) {
+        this.school = school;
+    }
+
+    public String getMajor() {
+        return major;
+    }
+
+    public void setMajor(String major) {
+        this.major = major;
+    }
+
+    public String getCollege() {
+        return college;
+    }
+
+    public void setCollege(String college) {
+        this.college = college;
     }
 }

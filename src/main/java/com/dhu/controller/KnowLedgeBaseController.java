@@ -29,25 +29,25 @@ public class KnowLedgeBaseController {
         if (kbId == null || kbId <= 0) {
             return Result.getErr().setMsg("查询参数错误");
         }
-        return Result.nullFilterData("kb", knowledgeBaseService.querySingle(kbId));
+        return Result.nullFilterData("kb", knowledgeBaseService.querySingle(kbId, UserHolder.getUser().getId()));
     }
 
     //获取个人的知识库列表
     @GetMapping("/query")
-    Result queryList(@RequestParam int current, @RequestParam int size) {
+    Result queryList(@RequestParam int current, @RequestParam int size, @RequestParam String search) {
         if (current <= 0 || size <= 0) {
             return Result.getErr().setMsg("查询参数错误");
         }
-        return Result.nullFilterData("kbs", knowledgeBaseService.queryUserKnowledgeBases(current, size, UserHolder.getUser().getId()));
+        return Result.nullFilterData("kbs", knowledgeBaseService.queryUserKnowledgeBases(current, size, UserHolder.getUser().getId(), search));
     }
 
     //获取团队知识库列表
     @GetMapping("/query_team")
-    Result queryListByTeam(@RequestParam int current, @RequestParam int size, @RequestParam("team_id") Integer teamId) {
+    Result queryListByTeam(@RequestParam int current, @RequestParam int size, @RequestParam("team_id") Integer teamId, @RequestParam String search) {
         if (current <= 0 || size <= 0) {
             return Result.getErr().setMsg("查询参数错误");
         }
-        return Result.nullFilterData("kbs", knowledgeBaseService.queryTeamKnowledgeBases(current, size, teamId));
+        return Result.nullFilterData("kbs", knowledgeBaseService.queryTeamKnowledgeBases(current, size, teamId, UserHolder.getUser().getId(), search));
     }
 
     //插入知识库

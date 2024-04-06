@@ -18,5 +18,5 @@ public interface UserTeamRelationService {
     boolean deleteUsersInTeam(Integer teamId);
 
     //将团队中的成员设置为管理员
-    boolean setUserToAdmin(UserTeamRelation relation);
+    boolean setUserRight(UserTeamRelation relation);
 }

@@ -3,10 +3,12 @@ package com.dhu.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.dhu.constants.RedisConstants;
+import com.dhu.constants.RightConstants;
 import com.dhu.dao.TeamDao;
 import com.dhu.dao.UserDao;
 import com.dhu.dao.UserTeamRelationDao;
 import com.dhu.entity.UserTeamRelation;
+import com.dhu.exception.IllegalObjectException;
 import com.dhu.exception.NotExistException;
 import com.dhu.service.UserTeamRelationService;
 import jakarta.annotation.Resource;
@@ -48,13 +50,13 @@ public class UserTeamRelationServiceImpl implements UserTeamRelationService {
         }
         //验证是否已存在关系
         if (userTeamRelationDao.selectOne(new QueryWrapper<UserTeamRelation>().eq("team_id", teamId).eq("user_id", userId)) != null) {
-            return false;
+            throw new IllegalObjectException("已经加入过该团队");
         }
         //业务添加
         UserTeamRelation relation = new UserTeamRelation();
         relation.setUserId(userId);
         relation.setTeamId(teamId);
-        relation.setAdmin(false);
+        relation.setUserRight(RightConstants.MEMBER);
         relation.setJoinTime(LocalDateTime.now());
         userTeamRelationDao.insert(relation);
         return true;
@@ -82,8 +84,7 @@ public class UserTeamRelationServiceImpl implements UserTeamRelationService {
     }
 
     @Override
-    public boolean setUserToAdmin(UserTeamRelation relation) {
-        relation.setAdmin(true);
+    public boolean setUserRight(UserTeamRelation relation) {
         LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserTeamRelation::getUserId, relation.getUserId()).eq(UserTeamRelation::getTeamId, relation.getTeamId());
         return userTeamRelationDao.update(relation, wrapper) > 0;

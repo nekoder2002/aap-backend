@@ -6,12 +6,15 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dhu.constants.InterfaceUrlConstants;
+import com.dhu.constants.RightConstants;
 import com.dhu.dao.KnowledgeBaseDao;
 import com.dhu.dao.UserDao;
+import com.dhu.dao.UserTeamRelationDao;
 import com.dhu.dto.KbAddFormDTO;
 import com.dhu.dto.KbDTO;
 import com.dhu.entity.KnowledgeBase;
 import com.dhu.entity.User;
+import com.dhu.entity.UserTeamRelation;
 import com.dhu.exception.HttpException;
 import com.dhu.exception.NotExistException;
 import com.dhu.exception.OperationException;
@@ -23,6 +26,7 @@ import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,6 +36,8 @@ import java.util.UUID;
 @Service
 @Transactional
 public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
+    @Autowired
+    private UserTeamRelationDao userTeamRelationDao;
     @Autowired
     private KnowledgeBaseDao knowledgeBaseDao;
     @Autowired
@@ -44,12 +50,27 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     private HttpHelper httpHelper;
 
     @Override
-    public KbDTO querySingle(Integer kbId) {
+    public KbDTO querySingle(Integer kbId, Integer userId) {
         KnowledgeBase knowledgeBase = knowledgeBaseDao.selectById(kbId);
         KbDTO dto = new KbDTO();
         BeanUtil.copyProperties(knowledgeBase, dto);
         User user = userDao.selectById(knowledgeBase.getBuilderId());
         dto.setBuilderName(user.getName());
+        if (knowledgeBase.getBelongsToTeam()) {
+            LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(UserTeamRelation::getTeamId, knowledgeBase.getTeamId()).eq(UserTeamRelation::getUserId, userId);
+            UserTeamRelation relation = userTeamRelationDao.selectOne(wrapper);
+            if (relation == null) {
+                dto.setUserRight(RightConstants.NOT_RIGHT);
+            }
+            if (knowledgeBase.getBuilderId().equals(userId)) {
+                dto.setUserRight(RightConstants.ADMIN);
+            } else {
+                dto.setUserRight(relation.getUserRight());
+            }
+        } else {
+            dto.setUserRight(RightConstants.ADMIN);
+        }
         return dto;
     }
 
@@ -63,6 +84,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         for (KnowledgeBase kb : list) {
             KbDTO kbDTO = new KbDTO();
             BeanUtil.copyProperties(kb, kbDTO);
+            kbDTO.setUserRight(RightConstants.ADMIN);
             kbDTO.setBuilderName(user.getName());
             dtoList.add(kbDTO);
         }
@@ -70,17 +92,26 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     }
 
     @Override
-    public IPage<KbDTO> queryTeamKnowledgeBases(int current, int size, Integer teamId) {
+    public IPage<KbDTO> queryTeamKnowledgeBases(int current, int size, Integer teamId, Integer userId, String search) {
         IPage<KnowledgeBase> page = new Page<>(current, size);
         IPage<KbDTO> dtoPage = new Page<>(current, size);
         LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(KnowledgeBase::getTeamId, teamId).eq(KnowledgeBase::getBelongsToTeam, true).orderByDesc(KnowledgeBase::getId);
+        LambdaQueryWrapper<UserTeamRelation> relWrapper = new LambdaQueryWrapper<>();
+        relWrapper.eq(UserTeamRelation::getUserId, userId).eq(UserTeamRelation::getTeamId, teamId);
+        UserTeamRelation relation = userTeamRelationDao.selectOne(relWrapper);
+        Integer userRight = relation == null ? RightConstants.NOT_RIGHT : relation.getUserRight();
+        wrapper.eq(KnowledgeBase::getTeamId, teamId).eq(KnowledgeBase::getBelongsToTeam, true).like(StringUtils.hasText(search), KnowledgeBase::getName, search).orderByDesc(KnowledgeBase::getId);
         knowledgeBaseDao.selectPage(page, wrapper);
         List<KnowledgeBase> list = page.getRecords();
         List<KbDTO> dtoList = new ArrayList<>();
         for (KnowledgeBase kb : list) {
             KbDTO dto = new KbDTO();
             BeanUtil.copyProperties(kb, dto);
+            if (kb.getBuilderId().equals(userId)) {
+                dto.setUserRight(RightConstants.ADMIN);
+            } else {
+                dto.setUserRight(userRight);
+            }
             dto.setBuilderName(userDao.selectById(kb.getBuilderId()).getName());
             dtoList.add(dto);
         }
@@ -91,11 +122,11 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     }
 
     @Override
-    public IPage<KbDTO> queryUserKnowledgeBases(int current, int size, Integer userId) {
+    public IPage<KbDTO> queryUserKnowledgeBases(int current, int size, Integer userId, String search) {
         IPage<KnowledgeBase> page = new Page<>(current, size);
         IPage<KbDTO> dtoPage = new Page<>(current, size);
         LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(KnowledgeBase::getBuilderId, userId).eq(KnowledgeBase::getBelongsToTeam, false).orderByDesc(KnowledgeBase::getId);
+        wrapper.eq(KnowledgeBase::getBuilderId, userId).eq(KnowledgeBase::getBelongsToTeam, false).like(StringUtils.hasText(search), KnowledgeBase::getName, search).orderByDesc(KnowledgeBase::getId);
         knowledgeBaseDao.selectPage(page, wrapper);
         List<KnowledgeBase> list = page.getRecords();
         List<KbDTO> dtoList = new ArrayList<>();
@@ -104,6 +135,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
             KbDTO dto = new KbDTO();
             BeanUtil.copyProperties(kb, dto);
             dto.setBuilderName(user.getName());
+            dto.setUserRight(RightConstants.ADMIN);
             dtoList.add(dto);
         }
         dtoPage.setPages(page.getPages());

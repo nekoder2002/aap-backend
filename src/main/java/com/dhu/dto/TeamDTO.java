@@ -9,6 +9,7 @@ public class TeamDTO {
     private LocalDateTime buildTime;
     private String adminName;
     private Integer adminId;
+    private Integer userRight;
 
     public Integer getId() {
         return id;
@@ -56,5 +57,13 @@ public class TeamDTO {
 
     public void setAdminId(Integer adminId) {
         this.adminId = adminId;
+    }
+
+    public Integer getUserRight() {
+        return userRight;
+    }
+
+    public void setUserRight(Integer userRight) {
+        this.userRight = userRight;
     }
 }

@@ -11,8 +11,8 @@ public class UserTeamRelation {
     private Integer userId;
     @TableField("team_id")
     private Integer teamId;
-    @TableField("is_admin")
-    private Boolean admin;
+    @TableField("user_right")
+    private Integer userRight;
     @TableField("join_time")
     private LocalDateTime joinTime;
 
@@ -32,12 +32,12 @@ public class UserTeamRelation {
         this.teamId = teamId;
     }
 
-    public Boolean getAdmin() {
-        return admin;
+    public Integer getUserRight() {
+        return userRight;
     }
 
-    public void setAdmin(Boolean admin) {
-        this.admin = admin;
+    public void setUserRight(Integer userRight) {
+        this.userRight = userRight;
     }
 
     public LocalDateTime getJoinTime() {

@@ -29,11 +29,11 @@ public class PaperController {
 
     //获取知识库的Paper列表
     @GetMapping("/query")
-    Result queryList(@RequestParam int current, @RequestParam int size, @RequestParam("kb_id") Integer kbId) {
+    Result queryList(@RequestParam int current, @RequestParam int size, @RequestParam("kb_id") Integer kbId, @RequestParam String search) {
         if (current <= 0 || size <= 0) {
             return Result.getErr().setMsg("查询参数错误");
         }
-        return Result.nullFilterData("papers", paperService.queryPapers(current, size, kbId));
+        return Result.nullFilterData("papers", paperService.queryPapers(current, size, kbId, search));
     }
 
     //上传论文

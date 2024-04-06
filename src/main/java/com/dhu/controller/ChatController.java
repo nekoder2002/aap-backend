@@ -5,7 +5,6 @@ import com.dhu.constants.BaseConstants;
 import com.dhu.dto.KbChatDTO;
 import com.dhu.dto.PaperChatDTO;
 import com.dhu.service.ChatService;
-import com.dhu.utils.BaseUtils;
 import com.dhu.utils.UserHolder;
 import com.dhu.utils.model.Result;
 import org.springframework.beans.factory.annotation.Autowired;

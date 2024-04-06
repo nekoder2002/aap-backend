@@ -6,9 +6,12 @@ public class MemberDTO {
     private Integer id;
     private String email;
     private String name;
+    private String school;
+    private String major;
+    private String college;
 
     private LocalDateTime time;
-    private Boolean isAdmin;
+    private Integer userRight;
 
     public Integer getId() {
         return id;
@@ -34,12 +37,12 @@ public class MemberDTO {
         this.name = name;
     }
 
-    public Boolean isAdmin() {
-        return isAdmin;
+    public Integer getUserRight() {
+        return userRight;
     }
 
-    public void setAdmin(Boolean admin) {
-        isAdmin = admin;
+    public void setUserRight(Integer userRight) {
+        this.userRight = userRight;
     }
 
     public LocalDateTime getTime() {
@@ -48,5 +51,29 @@ public class MemberDTO {
 
     public void setTime(LocalDateTime time) {
         this.time = time;
+    }
+
+    public String getSchool() {
+        return school;
+    }
+
+    public void setSchool(String school) {
+        this.school = school;
+    }
+
+    public String getMajor() {
+        return major;
+    }
+
+    public void setMajor(String major) {
+        this.major = major;
+    }
+
+    public String getCollege() {
+        return college;
+    }
+
+    public void setCollege(String college) {
+        this.college = college;
     }
 }

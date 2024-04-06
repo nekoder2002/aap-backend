@@ -11,6 +11,7 @@ public class KbDTO {
     private Integer builderId;
     private String builderName;
     private Boolean belongsToTeam;
+    private Integer userRight;
     private LocalDateTime buildTime;
 
     public Integer getId() {
@@ -83,5 +84,13 @@ public class KbDTO {
 
     public void setBuildTime(LocalDateTime buildTime) {
         this.buildTime = buildTime;
+    }
+
+    public Integer getUserRight() {
+        return userRight;
+    }
+
+    public void setUserRight(Integer userRight) {
+        this.userRight = userRight;
     }
 }

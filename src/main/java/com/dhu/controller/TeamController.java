@@ -1,10 +1,7 @@
 package com.dhu.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.dhu.dto.JoinTeamFormDTO;
-import com.dhu.dto.MemberDTO;
 import com.dhu.dto.TeamAddFormDTO;
-import com.dhu.dto.TeamDTO;
 import com.dhu.entity.Team;
 import com.dhu.entity.UserTeamRelation;
 import com.dhu.service.TeamService;
@@ -31,7 +28,7 @@ public class TeamController {
         if (teamId==null||teamId<=0){
             return Result.getErr().setMsg("查询参数错误");
         }
-        return Result.nullFilterData("team",teamService.querySingle(teamId));
+        return Result.nullFilterData("team",teamService.querySingle(teamId,UserHolder.getUser().getId()));
     }
 
     //查询个人的团队信息
@@ -127,11 +124,11 @@ public class TeamController {
     }
 
     //将团队中的成员设置为管理员
-    @PostMapping("/admin")
+    @PostMapping("/right")
     Result setUserToAdmin(@RequestBody UserTeamRelation relation){
         if (relation.getTeamId()==null||relation.getTeamId()<=0||relation.getUserId()==null||relation.getUserId()<=0){
             return Result.updateErr().setMsg("查询参数错误");
         }
-        return Result.verifyUpdate(userTeamRelationService.setUserToAdmin(relation));
+        return Result.verifyUpdate(userTeamRelationService.setUserRight(relation));
     }
 }

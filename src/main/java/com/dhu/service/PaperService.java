@@ -15,7 +15,7 @@ public interface PaperService {
     PaperDTO querySingle(Integer paperId);
 
     //获取知识库的Paper列表
-    IPage<PaperDTO> queryPapers(int current, int size, Integer kbId);
+    IPage<PaperDTO> queryPapers(int current, int size, Integer kbId,String search);
 
     //上传论文
     boolean uploadPaper(Integer kbId, Integer builderId, MultipartFile files);

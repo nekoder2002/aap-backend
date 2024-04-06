@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dhu.constants.BaseConstants;
 import com.dhu.constants.RedisConstants;
+import com.dhu.constants.RightConstants;
 import com.dhu.dao.KnowledgeBaseDao;
 import com.dhu.dao.TeamDao;
 import com.dhu.dao.UserDao;
@@ -54,16 +55,24 @@ public class TeamServiceImpl implements TeamService {
     private StringRedisTemplate stringRedisTemplate;
 
     @Override
-    public TeamDTO querySingle(Integer teamId) {
+    public TeamDTO querySingle(Integer teamId, Integer userId) {
         LambdaQueryWrapper<UserTeamRelation> relWrapper = new LambdaQueryWrapper<>();
         Team team = teamDao.selectById(teamId);
         TeamDTO dto = new TeamDTO();
         BeanUtil.copyProperties(team, dto);
-        relWrapper.eq(UserTeamRelation::getTeamId, teamId).eq(UserTeamRelation::getAdmin, true);
+        relWrapper.eq(UserTeamRelation::getTeamId, teamId).eq(UserTeamRelation::getUserRight, RightConstants.ADMIN);
         UserTeamRelation relation = userTeamRelationDao.selectOne(relWrapper);
         User user = userDao.selectById(relation.getUserId());
         dto.setAdminId(user.getId());
         dto.setAdminName(user.getName());
+        relWrapper.clear();
+        relWrapper.eq(UserTeamRelation::getUserId, userId).eq(UserTeamRelation::getTeamId, teamId);
+        relation = userTeamRelationDao.selectOne(relWrapper);
+        if (relation == null) {
+            dto.setUserRight(RightConstants.NOT_RIGHT);
+        } else {
+            dto.setUserRight(relation.getUserRight());
+        }
         return dto;
     }
 
@@ -78,7 +87,7 @@ public class TeamServiceImpl implements TeamService {
         Map<Integer, Team> teamIndex = new HashMap<>();
         Map<Integer, User> utMap = new HashMap<>();
         //查找关系表
-        relWrapper.eq(UserTeamRelation::getUserId, userId).eq(isAdmin, UserTeamRelation::getAdmin, isAdmin).orderByDesc(UserTeamRelation::getJoinTime);
+        relWrapper.eq(UserTeamRelation::getUserId, userId).ne(isAdmin, UserTeamRelation::getUserRight, RightConstants.MEMBER).orderByDesc(UserTeamRelation::getJoinTime);
         userTeamRelationDao.selectPage(relPage, relWrapper);
         List<UserTeamRelation> relList = relPage.getRecords();
         //查找团队
@@ -90,7 +99,7 @@ public class TeamServiceImpl implements TeamService {
             }
             //查找管理员
             relWrapper.clear();
-            relWrapper.eq(UserTeamRelation::getAdmin, true).in(UserTeamRelation::getTeamId, relList.stream().map(UserTeamRelation::getTeamId).toList());
+            relWrapper.eq(UserTeamRelation::getUserRight, RightConstants.ADMIN).in(UserTeamRelation::getTeamId, relList.stream().map(UserTeamRelation::getTeamId).toList());
             List<UserTeamRelation> adminList = userTeamRelationDao.selectList(relWrapper);
             userWrapper.in(User::getId, adminList.stream().map(UserTeamRelation::getUserId).toList());
             List<User> users = userDao.selectList(userWrapper);
@@ -108,6 +117,7 @@ public class TeamServiceImpl implements TeamService {
                 BeanUtil.copyProperties(teamIndex.get(relation.getTeamId()), dto);
                 dto.setAdminName(user.getName());
                 dto.setAdminId(user.getId());
+                dto.setUserRight(relation.getUserRight());
                 dtoList.add(dto);
             }
             dtoPage.setRecords(dtoList);
@@ -127,7 +137,7 @@ public class TeamServiceImpl implements TeamService {
         LambdaQueryWrapper<User> userWrapper = new LambdaQueryWrapper<>();
         Map<Integer, User> userIndex = new HashMap<>();
         //查找关系表
-        relWrapper.eq(UserTeamRelation::getTeamId, teamId).eq(isAdmin, UserTeamRelation::getAdmin, isAdmin).orderByDesc(UserTeamRelation::getAdmin);
+        relWrapper.eq(UserTeamRelation::getTeamId, teamId).ne(isAdmin, UserTeamRelation::getUserRight, RightConstants.MEMBER).orderByAsc(UserTeamRelation::getUserRight);
         userTeamRelationDao.selectPage(relPage, relWrapper);
         List<UserTeamRelation> relList = relPage.getRecords();
         if (!relList.isEmpty()) {        //查找用户
@@ -142,7 +152,7 @@ public class TeamServiceImpl implements TeamService {
                 MemberDTO dto = new MemberDTO();
                 User user = userIndex.get(relation.getUserId());
                 BeanUtil.copyProperties(user, dto);
-                dto.setAdmin(relation.getAdmin());
+                dto.setUserRight(relation.getUserRight());
                 dto.setTime(relation.getJoinTime());
                 dtoList.add(dto);
             }
@@ -165,7 +175,7 @@ public class TeamServiceImpl implements TeamService {
         }
         //加入管理员
         UserTeamRelation relation = new UserTeamRelation();
-        relation.setAdmin(true);
+        relation.setUserRight(RightConstants.ADMIN);
         relation.setTeamId(team.getId());
         relation.setUserId(teamAddForm.getAdminId());
         relation.setJoinTime(LocalDateTime.now());
@@ -216,7 +226,7 @@ public class TeamServiceImpl implements TeamService {
     @Override
     public long countTeamUsers(Integer teamId, boolean isAdmin) {
         LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserTeamRelation::getTeamId, teamId).eq(isAdmin, UserTeamRelation::getAdmin, isAdmin);
+        wrapper.eq(UserTeamRelation::getTeamId, teamId).ne(isAdmin, UserTeamRelation::getUserRight, RightConstants.MEMBER);
         return userTeamRelationDao.selectCount(wrapper);
     }
 }

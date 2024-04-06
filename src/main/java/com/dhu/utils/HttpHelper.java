@@ -2,7 +2,6 @@ package com.dhu.utils;
 
 import cn.hutool.http.HttpRequest;
 import com.dhu.constants.BaseConstants;
-import com.dhu.dto.TranslationDTO;
 import com.dhu.exception.HttpException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.CharEncoding;
@@ -20,13 +19,9 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.DigestUtils;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriUtils;
 
@@ -71,10 +66,7 @@ public class HttpHelper {
 
     //创建 httpclient 对象
     private HttpClient getHttpClient() {
-        return HttpClients.custom()
-                .setConnectionManager(CONNECT_MANAGER)
-                .disableAutomaticRetries()
-                .build();
+        return HttpClients.custom().setConnectionManager(CONNECT_MANAGER).disableAutomaticRetries().build();
     }
 
     //回收链接到连接池
@@ -115,8 +107,7 @@ public class HttpHelper {
     public String get(String url, Map<String, String> params) {
         //url参数拼接
         if (params != null && !params.isEmpty()) {
-            url = url + '?' +
-                    String.join("&", params.entrySet().stream().map(entry -> entry.getKey() + '=' + entry.getValue()).toArray(String[]::new));
+            url = url + '?' + String.join("&", params.entrySet().stream().map(entry -> entry.getKey() + '=' + entry.getValue()).toArray(String[]::new));
         }
         HttpClient httpClient = getHttpClient();
         HttpResponse response = null;
@@ -145,19 +136,14 @@ public class HttpHelper {
         upFiles[0] = reFile;
         Map<String, Object> data = new HashMap<>(params);
         data.put("files", upFiles);
-        return HttpRequest.post(baseURL + url)
-                .form(data)
-                .contentType("multipart/form-data")
-                .execute()
-                .body();
+        return HttpRequest.post(baseURL + url).form(data).contentType("multipart/form-data").execute().body();
     }
 
     //下载文件
     public void downloadFile(String url, Map<String, String> params, HttpServletResponse webResponse, String filename) {
         //url参数拼接
         if (params != null && !params.isEmpty()) {
-            url = url + '?' +
-                    String.join("&", params.entrySet().stream().map(entry -> entry.getKey() + '=' + entry.getValue()).toArray(String[]::new));
+            url = url + '?' + String.join("&", params.entrySet().stream().map(entry -> entry.getKey() + '=' + entry.getValue()).toArray(String[]::new));
         }
         HttpClient httpClient = getHttpClient();
         HttpResponse response = null;
@@ -195,8 +181,7 @@ public class HttpHelper {
     public void previewFile(String url, Map<String, String> params, HttpServletResponse webResponse, String filename) {
         //url参数拼接
         if (params != null && !params.isEmpty()) {
-            url = url + '?' +
-                    String.join("&", params.entrySet().stream().map(entry -> entry.getKey() + '=' + entry.getValue()).toArray(String[]::new));
+            url = url + '?' + String.join("&", params.entrySet().stream().map(entry -> entry.getKey() + '=' + entry.getValue()).toArray(String[]::new));
         }
         HttpClient httpClient = getHttpClient();
         HttpResponse response = null;

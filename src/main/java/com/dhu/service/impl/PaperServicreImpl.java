@@ -9,7 +9,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dhu.constants.BaseConstants;
 import com.dhu.constants.InterfaceUrlConstants;
 import com.dhu.dao.KnowledgeBaseDao;
-import com.dhu.dao.PaperChatDao;
 import com.dhu.dao.PaperDao;
 import com.dhu.dao.UserDao;
 import com.dhu.dto.PaperDTO;
@@ -19,15 +18,15 @@ import com.dhu.entity.Paper;
 import com.dhu.exception.HttpException;
 import com.dhu.exception.NotExistException;
 import com.dhu.service.ChatService;
+import com.dhu.service.NoteService;
 import com.dhu.service.PaperService;
 import com.dhu.utils.HttpHelper;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -36,6 +35,8 @@ import java.util.*;
 @Service
 @Transactional
 public class PaperServicreImpl implements PaperService {
+    @Autowired
+    private NoteService noteService;
     @Autowired
     private PaperDao paperDao;
     @Autowired
@@ -60,11 +61,11 @@ public class PaperServicreImpl implements PaperService {
     }
 
     @Override
-    public IPage<PaperDTO> queryPapers(int current, int size, Integer kbId) {
+    public IPage<PaperDTO> queryPapers(int current, int size, Integer kbId, String search) {
         IPage<Paper> page = new Page<>(current, size);
         IPage<PaperDTO> dtoPage = new Page<>(current, size);
         LambdaQueryWrapper<Paper> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Paper::getKnowledgeBaseId, kbId).orderByDesc(Paper::getId);
+        wrapper.eq(Paper::getKnowledgeBaseId, kbId).like(StringUtils.hasText(search), Paper::getName, search).orderByDesc(Paper::getId);
         paperDao.selectPage(page, wrapper);
         List<Paper> list = page.getRecords();
         List<PaperDTO> dtoList = new ArrayList<>();
@@ -99,7 +100,7 @@ public class PaperServicreImpl implements PaperService {
         data.put("filename_dict", String.format("{'%s':'%s'}", uuid + BaseConstants.PAPER_TYPE, file.getOriginalFilename()));
         String result = httpHelper.upload(InterfaceUrlConstants.UPLOAD_FILE, uuid, file, data);
         JSONObject object = JSONObject.parseObject(result);
-        if (object.getInteger("code") == 200) {
+        if (object.getInteger("code") == 200 && object.getJSONArray("failed_files").isEmpty()) {
             //插入数据库
             LocalDateTime now = LocalDateTime.now();
             Paper paper = new Paper();
@@ -110,8 +111,7 @@ public class PaperServicreImpl implements PaperService {
             paper.setKnowledgeBaseId(kbId);
             return paperDao.insert(paper) > 0;
         } else {
-            //获取失败的文件列表
-            throw new HttpException("接口访问：插入部分文件失败");
+            throw new HttpException("接口访问：插入部分文件失败，论文不符合标准规范");
         }
     }
 
@@ -140,7 +140,7 @@ public class PaperServicreImpl implements PaperService {
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
             //删除论文
-            return chatService.deleteChatByPaper(paperId) && paperDao.deleteById(paperId) > 0;
+            return noteService.deleteNotesByPaper(paperId) && chatService.deleteChatByPaper(paperId) && paperDao.deleteById(paperId) > 0;
         } else {
             throw new HttpException("接口访问：新建数据库失败");
         }
@@ -151,8 +151,9 @@ public class PaperServicreImpl implements PaperService {
         LambdaQueryWrapper<Paper> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Paper::getKnowledgeBaseId, kbId);
         List<Paper> papers = paperDao.selectList(wrapper);
-        for(Paper paper:papers){
+        for (Paper paper : papers) {
             chatService.deleteChatByPaper(paper.getId());
+            noteService.deleteNotesByPaper(paper.getId());
         }
         return paperDao.delete(wrapper) >= 0;
     }
@@ -194,6 +195,7 @@ public class PaperServicreImpl implements PaperService {
             //删除数据库
             for (Integer id : paperIds) {
                 chatService.deleteChatByPaper(id);
+                noteService.deleteNotesByPaper(id);
             }
             return paperDao.deleteBatchIds(paperIds) > 0;
         } else {
@@ -203,6 +205,7 @@ public class PaperServicreImpl implements PaperService {
             List<String> deleteIds = deleteUUIDs.stream().filter(id -> !failedFiles.contains(id)).toList();
             for (String id : deleteIds) {
                 chatService.deleteChatByPaper(Integer.parseInt(id));
+                noteService.deleteNotesByPaper(Integer.parseInt(id));
             }
             return paperDao.deleteBatchIds(deleteIds) > 0;
         }
