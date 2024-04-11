@@ -1,6 +1,7 @@
 package com.dhu.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -11,6 +12,7 @@ import com.dhu.constants.InterfaceUrlConstants;
 import com.dhu.dao.KnowledgeBaseDao;
 import com.dhu.dao.PaperDao;
 import com.dhu.dao.UserDao;
+import com.dhu.dto.EchartDTO;
 import com.dhu.dto.PaperDTO;
 import com.dhu.dto.TranslationDTO;
 import com.dhu.entity.KnowledgeBase;
@@ -20,6 +22,8 @@ import com.dhu.exception.NotExistException;
 import com.dhu.service.ChatService;
 import com.dhu.service.NoteService;
 import com.dhu.service.PaperService;
+import com.dhu.utils.BaseUtils;
+import com.dhu.utils.ContentUtils;
 import com.dhu.utils.HttpHelper;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -54,9 +59,14 @@ public class PaperServicreImpl implements PaperService {
         if (paper == null) {
             throw new NotExistException("查询的论文不存在，请重试");
         }
+        paper.setVisit(paper.getVisit() + 1);
         PaperDTO dto = new PaperDTO();
         BeanUtil.copyProperties(paper, dto);
+        JSONArray jsonArray = JSONArray.parseArray(paper.getFreq());
+        List<EchartDTO> list = jsonArray.toJavaList(EchartDTO.class);
+        dto.setFreqList(list);
         dto.setBuilderName(userDao.selectById(paper.getBuilderId()).getName());
+        paperDao.updateById(paper);
         return dto;
     }
 
@@ -69,10 +79,11 @@ public class PaperServicreImpl implements PaperService {
         paperDao.selectPage(page, wrapper);
         List<Paper> list = page.getRecords();
         List<PaperDTO> dtoList = new ArrayList<>();
-        for (Paper kb : list) {
+        for (Paper paper : list) {
             PaperDTO dto = new PaperDTO();
-            BeanUtil.copyProperties(kb, dto);
-            dto.setBuilderName(userDao.selectById(kb.getBuilderId()).getName());
+            BeanUtil.copyProperties(paper, dto);
+            dto.setFreqList(List.of());
+            dto.setBuilderName(userDao.selectById(paper.getBuilderId()).getName());
             dtoList.add(dto);
         }
         dtoPage.setPages(page.getPages());
@@ -98,9 +109,11 @@ public class PaperServicreImpl implements PaperService {
         data.put("zh_title_enhance", true);
         data.put("not_refresh_vs_cache", false);
         data.put("filename_dict", String.format("{'%s':'%s'}", uuid + BaseConstants.PAPER_TYPE, file.getOriginalFilename()));
-        String result = httpHelper.upload(InterfaceUrlConstants.UPLOAD_FILE, uuid, file, data);
+        File pFile = BaseUtils.toFile(file);
+        List<EchartDTO> freq = ContentUtils.getWordList(ContentUtils.readPDF(pFile));
+        String result = httpHelper.upload(InterfaceUrlConstants.UPLOAD_FILE, uuid, pFile, data);
         JSONObject object = JSONObject.parseObject(result);
-        if (object.getInteger("code") == 200 && object.getJSONArray("failed_files").isEmpty()) {
+        if (object.getInteger("code") == 200 && object.getJSONObject("data").getJSONObject("failed_files").getInnerMap().isEmpty()) {
             //插入数据库
             LocalDateTime now = LocalDateTime.now();
             Paper paper = new Paper();
@@ -109,6 +122,7 @@ public class PaperServicreImpl implements PaperService {
             paper.setBuildTime(now);
             paper.setBuilderId(builderId);
             paper.setKnowledgeBaseId(kbId);
+            paper.setFreq(JSON.toJSONString(freq));
             return paperDao.insert(paper) > 0;
         } else {
             throw new HttpException("接口访问：插入部分文件失败，论文不符合标准规范");
@@ -212,10 +226,22 @@ public class PaperServicreImpl implements PaperService {
     }
 
     @Override
-    public long countTeamKnowledgeBases(Integer kbId) {
+    public long countByKb(Integer kbId) {
         LambdaQueryWrapper<Paper> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Paper::getKnowledgeBaseId, kbId);
         return paperDao.selectCount(wrapper);
+    }
+
+    @Override
+    public long countByUserPrivate(Integer userId) {
+        LambdaQueryWrapper<KnowledgeBase> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KnowledgeBase::getBuilderId, userId).eq(KnowledgeBase::getBelongsToTeam, false);
+        List<KnowledgeBase> list = knowledgeBaseDao.selectList(wrapper);
+        long count = 0;
+        for (KnowledgeBase kb : list) {
+            count += paperDao.selectCount(new LambdaQueryWrapper<Paper>().eq(Paper::getKnowledgeBaseId, kb.getId()));
+        }
+        return count;
     }
 
     @Override
@@ -263,5 +289,58 @@ public class PaperServicreImpl implements PaperService {
         String result = httpHelper.translate(translationDTO.getQ(), translationDTO.getFrom(), translationDTO.getTo());
         JSONObject object = JSONObject.parseObject(result);
         return object.getJSONArray("trans_result").getJSONObject(0).getString("dst");
+    }
+
+    @Override
+    public List<String> getQuestions(Integer paperId) {
+        // 查找 paper 所在的知识库
+        Paper paper = paperDao.selectById(paperId);
+        if (paper == null) {
+            throw new NotExistException("查找的论文不存在，请重试");
+        }
+        KnowledgeBase kb = knowledgeBaseDao.selectById(paper.getKnowledgeBaseId());
+        if (kb == null) {
+            throw new NotExistException("查找的知识库不存在，请重试");
+        }
+        JSONObject json = new JSONObject();
+        json.fluentPut("knowledge_base_name", kb.getIndexUUID());
+        json.fluentPut("file_name", paper.getIndexUUID() + BaseConstants.PAPER_TYPE);
+        json.fluentPut("temperature", 0.7);
+        String result = httpHelper.post(InterfaceUrlConstants.GET_QUESTIONS, json.toString());
+        JSONObject object = JSONObject.parseObject(result);
+        // 解析问题列表
+        if (object.containsKey("answer")) {
+            String str = object.getString("answer");
+            String[] sp = str.split("\\n");
+            List<String> res = null;
+            try {
+                res = Arrays.stream(sp).filter(it -> it.matches("^\\s*\\d+.+$")).map(it -> it.trim().split(" ")[1]).toList();
+            } catch (Exception e) {
+                return getQuestions(paperId);
+            }
+            if (res.size() == 5) {
+                return res;
+            } else {
+                return getQuestions(paperId);
+            }
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public List<EchartDTO> countStudy(String kbId) {
+        LambdaQueryWrapper<Paper> wrapper = new LambdaQueryWrapper<>();
+        //返回前20个文章
+        wrapper.eq(Paper::getKnowledgeBaseId, kbId).orderByDesc(Paper::getVisit).last("limit "+ BaseConstants.STUDY_COUNT_NUM);
+        List<Paper> list = paperDao.selectList(wrapper);
+        List<EchartDTO> res = new ArrayList<>();
+        for (Paper paper : list) {
+            EchartDTO dto = new EchartDTO();
+            dto.setName(paper.getName());
+            dto.setValue(paper.getVisit());
+            res.add(dto);
+        }
+        return res;
     }
 }

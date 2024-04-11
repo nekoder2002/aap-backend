@@ -35,5 +35,5 @@ public interface TeamService {
     long countTeamKnowledgeBases(Integer teamId);
 
     //查询团队中人员数量
-    long countTeamUsers(Integer teamId, boolean isAdmin);
+    long countTeam(Integer teamId, boolean isAdmin);
 }

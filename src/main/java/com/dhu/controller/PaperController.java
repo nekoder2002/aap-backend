@@ -66,8 +66,15 @@ public class PaperController {
     }
 
     //查询知识库中论文数量
+    @GetMapping("/count_kb")
     Result countTeamKnowledgeBases(Integer kbId) {
-        return null;
+        return Result.nullFilterData("count", paperService.countByKb(kbId));
+    }
+
+    //查询个人论文数量
+    @GetMapping("/count")
+    Result countPaper() {
+        return Result.nullFilterData("count", paperService.countByUserPrivate(UserHolder.getUser().getId()));
     }
 
     //下载论文
@@ -82,9 +89,21 @@ public class PaperController {
         paperService.preview(paperId, response);
     }
 
+    //生成问题
+    @GetMapping("questions")
+    public Result questions(@RequestParam("paper_id") Integer paperId){
+        return Result.nullFilterData("questions",paperService.getQuestions(paperId));
+    }
+
     //翻译接口
     @PostMapping("/translate")
     public Result translate(@RequestBody TranslationDTO translationDTO) {
         return Result.nullFilterData("text", paperService.translate(translationDTO));
+    }
+
+    //echarts学习统计接口
+    @GetMapping("study_count")
+    public Result studyStatic(@RequestParam("kb_id")String kbId){
+        return Result.nullFilterData("study",paperService.countStudy(kbId));
     }
 }

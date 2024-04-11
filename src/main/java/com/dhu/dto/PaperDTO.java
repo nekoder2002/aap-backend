@@ -1,15 +1,19 @@
 package com.dhu.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class PaperDTO {
     private Integer id;
     private String name;
+    private List<EchartDTO> freqList;
     private String indexUUID;
     private String builderName;
     private LocalDateTime buildTime;
     private Integer builderId;
     private Integer knowledgeBaseId;
+
+    private Integer visit;
 
     public Integer getId() {
         return id;
@@ -65,5 +69,21 @@ public class PaperDTO {
 
     public void setKnowledgeBaseId(Integer knowledgeBaseId) {
         this.knowledgeBaseId = knowledgeBaseId;
+    }
+
+    public List<EchartDTO> getFreqList() {
+        return freqList;
+    }
+
+    public void setFreqList(List<EchartDTO> freqList) {
+        this.freqList = freqList;
+    }
+
+    public Integer getVisit() {
+        return visit;
+    }
+
+    public void setVisit(Integer visit) {
+        this.visit = visit;
     }
 }

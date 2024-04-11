@@ -1,6 +1,7 @@
 package com.dhu.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.dhu.dto.EchartDTO;
 import com.dhu.dto.PaperDTO;
 import com.dhu.dto.TranslationDTO;
 import com.dhu.entity.Paper;
@@ -33,7 +34,10 @@ public interface PaperService {
     boolean deletePapersByKb(List<Integer> paperIds, Integer kbId);
 
     //查询知识库中论文数量
-    long countTeamKnowledgeBases(Integer kbId);
+    long countByKb(Integer kbId);
+
+    //查询个人论文数量
+    long countByUserPrivate(Integer userId);
 
     //下载论文
     boolean download(Integer paperId, HttpServletResponse response);
@@ -43,4 +47,8 @@ public interface PaperService {
 
     //翻译
     String translate(TranslationDTO translationDTO);
+
+    List<String> getQuestions(Integer paperId);
+
+    List<EchartDTO> countStudy(String kbId);
 }

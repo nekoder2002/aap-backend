@@ -24,11 +24,11 @@ public class TeamController {
 
     //查询单个的团队信息
     @GetMapping("/{teamId}")
-    Result get(@PathVariable Integer teamId){
-        if (teamId==null||teamId<=0){
+    Result get(@PathVariable Integer teamId) {
+        if (teamId == null || teamId <= 0) {
             return Result.getErr().setMsg("查询参数错误");
         }
-        return Result.nullFilterData("team",teamService.querySingle(teamId,UserHolder.getUser().getId()));
+        return Result.nullFilterData("team", teamService.querySingle(teamId, UserHolder.getUser().getId()));
     }
 
     //查询个人的团队信息
@@ -123,10 +123,16 @@ public class TeamController {
         return Result.verifyDelete(userTeamRelationService.deleteUsersByTeam(userIds, teamId));
     }
 
+    //统计个人团队数量
+    @GetMapping("/count")
+    Result countTeam(@RequestParam("admin") boolean admin) {
+        return Result.nullFilterData("count", teamService.countTeam(UserHolder.getUser().getId(), admin));
+    }
+
     //将团队中的成员设置为管理员
     @PostMapping("/right")
-    Result setUserToAdmin(@RequestBody UserTeamRelation relation){
-        if (relation.getTeamId()==null||relation.getTeamId()<=0||relation.getUserId()==null||relation.getUserId()<=0){
+    Result setUserToAdmin(@RequestBody UserTeamRelation relation) {
+        if (relation.getTeamId() == null || relation.getTeamId() <= 0 || relation.getUserId() == null || relation.getUserId() <= 0) {
             return Result.updateErr().setMsg("查询参数错误");
         }
         return Result.verifyUpdate(userTeamRelationService.setUserRight(relation));

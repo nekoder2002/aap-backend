@@ -85,7 +85,8 @@ public class KnowLedgeBaseController {
     }
 
     //查询个人的知识库数量
-    Result countUserKnowledgeBases(Integer userId) {
-        return null;
+    @GetMapping("/count")
+    Result countUserKnowledgeBases() {
+        return Result.nullFilterData("count", knowledgeBaseService.countUserKnowledgeBases(UserHolder.getUser().getId()));
     }
 }

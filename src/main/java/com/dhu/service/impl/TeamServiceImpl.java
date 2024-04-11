@@ -224,9 +224,9 @@ public class TeamServiceImpl implements TeamService {
     }
 
     @Override
-    public long countTeamUsers(Integer teamId, boolean isAdmin) {
+    public long countTeam(Integer userId, boolean isAdmin) {
         LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserTeamRelation::getTeamId, teamId).ne(isAdmin, UserTeamRelation::getUserRight, RightConstants.MEMBER);
+        wrapper.eq(UserTeamRelation::getUserId, userId).ne(isAdmin, UserTeamRelation::getUserRight, RightConstants.MEMBER);
         return userTeamRelationDao.selectCount(wrapper);
     }
 }

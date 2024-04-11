@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.DigestUtils;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriUtils;
 
 import java.io.*;
@@ -128,9 +127,9 @@ public class HttpHelper {
     }
 
     //上传文件
-    public String upload(String url, String uuid, MultipartFile file, Map<String, Object> params) {
+    public String upload(String url, String uuid, File file, Map<String, Object> params) {
         File[] upFiles = new File[1];
-        upFiles[0] = BaseUtils.toFile(file);
+        upFiles[0] = file;
         File reFile = new File(upFiles[0].getParentFile(), uuid + BaseConstants.PAPER_TYPE);
         upFiles[0].renameTo(reFile);
         upFiles[0] = reFile;

@@ -10,12 +10,14 @@ public class Paper {
     @TableId(type = IdType.AUTO)
     private Integer id;
     private String name;
+    private String freq;
     @TableField("index_uuid")
     private String indexUUID;
     @TableField("build_time")
     private LocalDateTime buildTime;
     @TableField("builder_id")
     private Integer builderId;
+    private Integer visit;
     @TableField("kb_id")
     private Integer knowledgeBaseId;
     @TableLogic
@@ -77,5 +79,21 @@ public class Paper {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public String getFreq() {
+        return freq;
+    }
+
+    public void setFreq(String freq) {
+        this.freq = freq;
+    }
+
+    public Integer getVisit() {
+        return visit;
+    }
+
+    public void setVisit(Integer visit) {
+        this.visit = visit;
     }
 }
