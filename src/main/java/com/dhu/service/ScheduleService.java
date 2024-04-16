@@ -1,7 +1,7 @@
 package com.dhu.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.dhu.dto.PaperDTO;
+import com.dhu.dto.PaperRecordDTO;
 import com.dhu.dto.ScheduleAddFormDTO;
 import com.dhu.dto.ScheduleDTO;
 import com.dhu.entity.Schedule;
@@ -16,7 +16,7 @@ public interface ScheduleService {
     IPage<ScheduleDTO> querySchedule(int current, int size, Integer userId, String search, Boolean isFinished);
 
     //查询计划中论文列表
-    IPage<PaperDTO> queryPaperBySchedule(int current, int size, Integer scheduleId, Boolean isFinished);
+    IPage<PaperRecordDTO> queryPaperBySchedule(int current, int size, Integer scheduleId, Boolean isFinished);
 
     //新建计划
     boolean insertSchedule(ScheduleAddFormDTO scheduleAddFormDTO);

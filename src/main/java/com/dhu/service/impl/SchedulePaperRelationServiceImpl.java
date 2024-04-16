@@ -1,20 +1,19 @@
 package com.dhu.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.dhu.dao.ScheduleDao;
 import com.dhu.dao.SchedulePaperRelationDao;
-import com.dhu.dto.ScheduleDTO;
 import com.dhu.entity.Schedule;
 import com.dhu.entity.SchedulePaperRelation;
 import com.dhu.exception.IllegalObjectException;
 import com.dhu.exception.OperationException;
 import com.dhu.service.SchedulePaperRelationService;
-import com.dhu.service.ScheduleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -27,6 +26,12 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
 
     @Override
     public boolean addPaperRelation(SchedulePaperRelation schedulePaperRelation) {
+        LambdaQueryWrapper<SchedulePaperRelation> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(SchedulePaperRelation::getScheduleId, schedulePaperRelation.getScheduleId())
+                .eq(SchedulePaperRelation::getPaperId, schedulePaperRelation.getPaperId());
+        if (schedulePaperRelationDao.selectOne(lambdaQueryWrapper) != null) {
+            throw new OperationException("该记录已存在");
+        }
         Schedule schedule = scheduleDao.selectById(schedulePaperRelation.getScheduleId());
         schedule.setFinished(false);
         scheduleDao.updateById(schedule);
@@ -39,11 +44,19 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
         if (schedulePaperRelationList.isEmpty()) {
             return false;
         }
+        LambdaQueryWrapper<SchedulePaperRelation> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         int scheduleId = schedulePaperRelationList.getFirst().getScheduleId();
         for (SchedulePaperRelation schedulePaperRelation : schedulePaperRelationList) {
-            if (scheduleId == schedulePaperRelation.getScheduleId()) {
+            if (scheduleId != schedulePaperRelation.getScheduleId()) {
                 throw new IllegalObjectException("scheduleId不一致");
             }
+            lambdaQueryWrapper.clear();
+            lambdaQueryWrapper.eq(SchedulePaperRelation::getScheduleId, schedulePaperRelation.getScheduleId())
+                    .eq(SchedulePaperRelation::getPaperId, schedulePaperRelation.getPaperId());
+            if (schedulePaperRelationDao.selectOne(lambdaQueryWrapper) != null) {
+                throw new OperationException("该记录已存在");
+            }
+            schedulePaperRelation.setFinished(false);
             schedulePaperRelationDao.insert(schedulePaperRelation);
             count++;
         }
@@ -87,7 +100,15 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
 
     @Override
     public boolean setPaperStatus(SchedulePaperRelation schedulePaperRelation) {
-        return schedulePaperRelationDao.updateById(schedulePaperRelation) > 0;
+        LambdaUpdateWrapper<SchedulePaperRelation> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(SchedulePaperRelation::getScheduleId, schedulePaperRelation.getScheduleId());
+        wrapper.eq(SchedulePaperRelation::getPaperId, schedulePaperRelation.getPaperId());
+        if (schedulePaperRelation.getFinished()) {
+            schedulePaperRelation.setFinTime(LocalDateTime.now());
+        } else {
+            wrapper.set(SchedulePaperRelation::getFinTime, null);
+        }
+        return schedulePaperRelationDao.update(schedulePaperRelation, wrapper) > 0;
     }
 
     @Override

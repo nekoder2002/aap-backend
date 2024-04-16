@@ -1,7 +1,5 @@
 package com.dhu.dto;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-
 import java.time.LocalDateTime;
 
 public class ScheduleAddFormDTO {

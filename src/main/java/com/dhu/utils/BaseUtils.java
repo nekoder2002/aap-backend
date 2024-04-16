@@ -80,4 +80,13 @@ public class BaseUtils {
         }
         return builder.toString();
     }
+
+    //String 转 Boolean
+    public static Boolean toBoolean(String str) {
+        if ("null".equals(str)) {
+            return null;
+        } else {
+            return Boolean.parseBoolean(str);
+        }
+    }
 }

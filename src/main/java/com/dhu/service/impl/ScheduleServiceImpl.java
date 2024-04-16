@@ -4,13 +4,11 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.dhu.dao.PaperDao;
-import com.dhu.dao.ScheduleDao;
-import com.dhu.dao.SchedulePaperRelationDao;
-import com.dhu.dao.UserDao;
-import com.dhu.dto.PaperDTO;
+import com.dhu.dao.*;
+import com.dhu.dto.PaperRecordDTO;
 import com.dhu.dto.ScheduleAddFormDTO;
 import com.dhu.dto.ScheduleDTO;
+import com.dhu.entity.KnowledgeBase;
 import com.dhu.entity.Paper;
 import com.dhu.entity.Schedule;
 import com.dhu.entity.SchedulePaperRelation;
@@ -37,6 +35,8 @@ public class ScheduleServiceImpl implements ScheduleService {
     private PaperDao paperDao;
     @Autowired
     private UserDao userDao;
+    @Autowired
+    private KnowledgeBaseDao knowledgeBaseDao;
     @Autowired
     private SchedulePaperRelationDao schedulePaperRelationDao;
     @Autowired
@@ -75,11 +75,12 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     @Override
-    public IPage<PaperDTO> queryPaperBySchedule(int current, int size, Integer scheduleId, Boolean isFinished) {
+    public IPage<PaperRecordDTO> queryPaperBySchedule(int current, int size, Integer scheduleId, Boolean isFinished) {
         IPage<SchedulePaperRelation> relPage = new Page<>(current, size);
-        IPage<PaperDTO> dtoPage = new Page<>(current, size);
+        IPage<PaperRecordDTO> dtoPage = new Page<>(current, size);
         LambdaQueryWrapper<SchedulePaperRelation> relWrapper = new LambdaQueryWrapper<>();
         LambdaQueryWrapper<Paper> paperWrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<KnowledgeBase> kbWrapper = new LambdaQueryWrapper<>();
         Map<Integer, Paper> paperIndex = new HashMap<>();
         //查找关系表
         relWrapper.eq(SchedulePaperRelation::getScheduleId, scheduleId).eq(isFinished != null, SchedulePaperRelation::getFinished, isFinished).orderByAsc(SchedulePaperRelation::getFinished);
@@ -92,12 +93,15 @@ public class ScheduleServiceImpl implements ScheduleService {
                 paperIndex.put(paper.getId(), paper);
             }
             //封装dto
-            List<PaperDTO> dtoList = new ArrayList<>();
+            List<PaperRecordDTO> dtoList = new ArrayList<>();
             for (SchedulePaperRelation relation : relList) {
-                PaperDTO dto = new PaperDTO();
+                PaperRecordDTO dto = new PaperRecordDTO();
                 Paper paper = paperIndex.get(relation.getPaperId());
                 BeanUtil.copyProperties(paper, dto);
                 dto.setBuilderName(userDao.selectById(paper.getBuilderId()).getName());
+                dto.setKnowledgeBaseName(knowledgeBaseDao.selectById(paper.getKnowledgeBaseId()).getName());
+                dto.setFinished(relation.getFinished());
+                dto.setFinTime(relation.getFinTime());
                 dtoList.add(dto);
             }
             dtoPage.setRecords(dtoList);

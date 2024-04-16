@@ -11,8 +11,6 @@ public class SchedulePaperRelation {
     private Integer paperId;
     @TableField("schedule_id")
     private Integer scheduleId;
-    @TableField("start_time")
-    private LocalDateTime startTime;
     @TableField("fin_time")
     private LocalDateTime finTime;
     private Boolean finished;
@@ -39,14 +37,6 @@ public class SchedulePaperRelation {
 
     public void setFinished(Boolean finished) {
         this.finished = finished;
-    }
-
-    public LocalDateTime getStartTime() {
-        return startTime;
-    }
-
-    public void setStartTime(LocalDateTime startTime) {
-        this.startTime = startTime;
     }
 
     public LocalDateTime getFinTime() {
