@@ -17,11 +17,10 @@ import com.dhu.dto.PaperDTO;
 import com.dhu.dto.TranslationDTO;
 import com.dhu.entity.KnowledgeBase;
 import com.dhu.entity.Paper;
+import com.dhu.entity.User;
 import com.dhu.exception.HttpException;
 import com.dhu.exception.NotExistException;
-import com.dhu.service.ChatService;
-import com.dhu.service.NoteService;
-import com.dhu.service.PaperService;
+import com.dhu.service.*;
 import com.dhu.utils.BaseUtils;
 import com.dhu.utils.ContentUtils;
 import com.dhu.utils.HttpHelper;
@@ -41,15 +40,19 @@ import java.util.*;
 @Transactional
 public class PaperServicreImpl implements PaperService {
     @Autowired
-    private NoteService noteService;
+    private SchedulePaperRelationService schedulePaperRelationService;
     @Autowired
     private PaperDao paperDao;
+    @Autowired
+    private NoteService noteService;
     @Autowired
     private ChatService chatService;
     @Autowired
     private KnowledgeBaseDao knowledgeBaseDao;
     @Autowired
     private UserDao userDao;
+    @Autowired
+    private LogService logService;
     @Resource
     private HttpHelper httpHelper;
 
@@ -65,7 +68,8 @@ public class PaperServicreImpl implements PaperService {
         JSONArray jsonArray = JSONArray.parseArray(paper.getFreq());
         List<EchartDTO> list = jsonArray.toJavaList(EchartDTO.class);
         dto.setFreqList(list);
-        dto.setBuilderName(userDao.selectById(paper.getBuilderId()).getName());
+        User user = userDao.selectById(paper.getBuilderId());
+        dto.setBuilderName(user==null?"已删除用户":user.getName());
         paperDao.updateById(paper);
         return dto;
     }
@@ -83,7 +87,8 @@ public class PaperServicreImpl implements PaperService {
             PaperDTO dto = new PaperDTO();
             BeanUtil.copyProperties(paper, dto);
             dto.setFreqList(List.of());
-            dto.setBuilderName(userDao.selectById(paper.getBuilderId()).getName());
+            User user = userDao.selectById(paper.getBuilderId());
+            dto.setBuilderName(user==null?"已删除用户":user.getName());
             dtoList.add(dto);
         }
         dtoPage.setPages(page.getPages());
@@ -122,7 +127,10 @@ public class PaperServicreImpl implements PaperService {
             paper.setBuildTime(now);
             paper.setBuilderId(builderId);
             paper.setKnowledgeBaseId(kbId);
+            paper.setVisit(0);
             paper.setFreq(JSON.toJSONString(freq));
+            //临时添加
+            logService.log("上传论文<" + paper.getName() + ">到知识库<" + kb.getName() + '>', kb.getTeamId());
             return paperDao.insert(paper) > 0;
         } else {
             throw new HttpException("接口访问：插入部分文件失败，论文不符合标准规范");
@@ -154,7 +162,9 @@ public class PaperServicreImpl implements PaperService {
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
             //删除论文
-            return noteService.deleteNotesByPaper(paperId) && chatService.deleteChatByPaper(paperId) && paperDao.deleteById(paperId) > 0;
+            logService.log("删除论文<" + paper.getName() + ">在知识库<" + kb.getName() + '>', kb.getTeamId());
+            //删除论文
+            return schedulePaperRelationService.deletePaperRelationsByPaperId(paperId) && noteService.deleteNotesByPaper(paperId) && chatService.deleteChatByPaper(paperId) && paperDao.deleteById(paperId) > 0;
         } else {
             throw new HttpException("接口访问：新建数据库失败");
         }
@@ -168,12 +178,15 @@ public class PaperServicreImpl implements PaperService {
         for (Paper paper : papers) {
             chatService.deleteChatByPaper(paper.getId());
             noteService.deleteNotesByPaper(paper.getId());
+            schedulePaperRelationService.deletePaperRelationsByPaperId(paper.getId());
         }
         return paperDao.delete(wrapper) >= 0;
     }
 
     @Override
     public boolean updatePaper(Paper paper) {
+        KnowledgeBase kb = knowledgeBaseDao.selectById(paper.getKnowledgeBaseId());
+        logService.log("更新论文<" + paper.getName() + ">在知识库<" + kb.getName() + '>', kb.getTeamId());
         return paperDao.updateById(paper) > 0;
     }
 
@@ -208,6 +221,8 @@ public class PaperServicreImpl implements PaperService {
         if (object.getInteger("code") == 200) {
             //删除数据库
             for (Integer id : paperIds) {
+                Paper paper = paperDao.selectById(id);
+                logService.log("删除论文<" + paper.getName() + ">在知识库<" + kb.getName() + '>', kb.getTeamId());
                 chatService.deleteChatByPaper(id);
                 noteService.deleteNotesByPaper(id);
             }
@@ -332,7 +347,7 @@ public class PaperServicreImpl implements PaperService {
     public List<EchartDTO> countStudy(String kbId) {
         LambdaQueryWrapper<Paper> wrapper = new LambdaQueryWrapper<>();
         //返回前20个文章
-        wrapper.eq(Paper::getKnowledgeBaseId, kbId).orderByDesc(Paper::getVisit).last("limit "+ BaseConstants.STUDY_COUNT_NUM);
+        wrapper.eq(Paper::getKnowledgeBaseId, kbId).orderByDesc(Paper::getVisit).last("limit " + BaseConstants.STUDY_COUNT_NUM);
         List<Paper> list = paperDao.selectList(wrapper);
         List<EchartDTO> res = new ArrayList<>();
         for (Paper paper : list) {

@@ -29,4 +29,7 @@ public interface ScheduleService {
 
     //修改计划信息
     boolean updateSchedule(Schedule schedule);
+
+    //统计
+    long countSchedule(Integer userId);
 }

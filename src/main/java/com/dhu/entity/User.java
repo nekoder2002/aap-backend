@@ -17,6 +17,7 @@ public class User {
     private String college;
     @TableField("register_time")
     private LocalDateTime registerTime;
+    private Boolean admin;
     @TableLogic
     private boolean isDeleted;
 
@@ -92,5 +93,13 @@ public class User {
 
     public void setCollege(String college) {
         this.college = college;
+    }
+
+    public Boolean getAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(Boolean admin) {
+        this.admin = admin;
     }
 }

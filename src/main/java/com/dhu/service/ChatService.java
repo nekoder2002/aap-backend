@@ -13,10 +13,10 @@ public interface ChatService {
     boolean chatWithKb(KbChatDTO kbChat);
 
     //查询知识库近期对话
-    List<PaperChatDTO> queryPaperChatRecords(Integer paperId, Integer userId, int limit);
+    List<PaperChatDTO> queryPaperChatRecords(Integer paperId, int limit);
 
     //查询论文近期对话记录
-    List<KbChatDTO> queryKbChatRecords(Integer kbId, Integer userId, int limit);
+    List<KbChatDTO> queryKbChatRecords(Integer kbId, int limit);
 
     //删除知识库所有对话记录
     boolean deleteChatByKb(Integer kbId);

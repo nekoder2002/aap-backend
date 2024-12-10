@@ -20,7 +20,7 @@ public class PaperController {
 
     //获取单个论文
     @GetMapping("/{paperId}")
-    Result get(@PathVariable Integer paperId) {
+    public Result get(@PathVariable Integer paperId) {
         if (paperId == null || paperId <= 0) {
             return Result.getErr().setMsg("查询参数错误");
         }
@@ -29,7 +29,7 @@ public class PaperController {
 
     //获取知识库的Paper列表
     @GetMapping("/query")
-    Result queryList(@RequestParam int current, @RequestParam int size, @RequestParam("kb_id") Integer kbId, @RequestParam String search) {
+    public Result queryList(@RequestParam int current, @RequestParam int size, @RequestParam("kb_id") Integer kbId, @RequestParam String search) {
         if (current <= 0 || size <= 0) {
             return Result.getErr().setMsg("查询参数错误");
         }
@@ -38,7 +38,7 @@ public class PaperController {
 
     //上传论文
     @PostMapping("/insert")
-    Result insert(Integer kbId, MultipartFile file) {
+    public Result insert(Integer kbId, MultipartFile file) {
         if (kbId == null || kbId <= 0 || file == null) {
             return Result.saveErr().setMsg("上传参数错误");
         }
@@ -47,13 +47,13 @@ public class PaperController {
 
     //删除论文
     @DeleteMapping("/delete")
-    Result deletePaper(@RequestParam("paper_id") Integer paperId) {
+    public Result deletePaper(@RequestParam("paper_id") Integer paperId) {
         return Result.verifyDelete(paperService.deletePaper(paperId));
     }
 
     //修改论文
     @PostMapping("/update")
-    Result updatePaper(@RequestBody Paper paper) {
+    public Result updatePaper(@RequestBody Paper paper) {
         paper.setBuildTime(null);
         paper.setBuilderId(null);
         return Result.verifyUpdate(paperService.updatePaper(paper));
@@ -61,19 +61,19 @@ public class PaperController {
 
     //批量删除一个知识库中的论文
     @DeleteMapping("/multdel")
-    Result deletePapersByKb(@RequestBody List<Integer> paperIds, @RequestParam("kb_id") Integer kbId) {
+    public Result deletePapersByKb(@RequestBody List<Integer> paperIds, @RequestParam("kb_id") Integer kbId) {
         return Result.verifyDelete(paperService.deletePapersByKb(paperIds, kbId));
     }
 
     //查询知识库中论文数量
     @GetMapping("/count_kb")
-    Result countTeamKnowledgeBases(Integer kbId) {
+    public Result countTeamKnowledgeBases(Integer kbId) {
         return Result.nullFilterData("count", paperService.countByKb(kbId));
     }
 
     //查询个人论文数量
     @GetMapping("/count")
-    Result countPaper() {
+    public Result countPaper() {
         return Result.nullFilterData("count", paperService.countByUserPrivate(UserHolder.getUser().getId()));
     }
 

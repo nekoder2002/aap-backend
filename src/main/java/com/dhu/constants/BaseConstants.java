@@ -8,4 +8,5 @@ public class BaseConstants {
     public static final String PAPER_TYPE = ".pdf";
     public static final int MAIL_CAPTCHA_LENGTH = 6;
     public static final int TEAM_CODE_LENGTH = 32;
+    public static final int LOG_SHOW_LIMIT = 100;
 }

@@ -1,13 +1,18 @@
 package com.dhu.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.dhu.dao.PaperDao;
 import com.dhu.dao.ScheduleDao;
 import com.dhu.dao.SchedulePaperRelationDao;
+import com.dhu.entity.Paper;
 import com.dhu.entity.Schedule;
 import com.dhu.entity.SchedulePaperRelation;
 import com.dhu.exception.IllegalObjectException;
 import com.dhu.exception.OperationException;
+import com.dhu.service.LogService;
+import com.dhu.service.PaperService;
 import com.dhu.service.SchedulePaperRelationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,6 +28,10 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
     private SchedulePaperRelationDao schedulePaperRelationDao;
     @Autowired
     private ScheduleDao scheduleDao;
+    @Autowired
+    private PaperDao paperDao;
+    @Autowired
+    private LogService logService;
 
     @Override
     public boolean addPaperRelation(SchedulePaperRelation schedulePaperRelation) {
@@ -35,6 +44,8 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
         Schedule schedule = scheduleDao.selectById(schedulePaperRelation.getScheduleId());
         schedule.setFinished(false);
         scheduleDao.updateById(schedule);
+        Paper paper = paperDao.selectById(schedulePaperRelation.getPaperId());
+        logService.log("加入论文<" + paper.getName() + ">到计划<" + schedule.getName() + '>', null);
         return schedulePaperRelationDao.insert(schedulePaperRelation) > 0;
     }
 
@@ -46,6 +57,7 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
         }
         LambdaQueryWrapper<SchedulePaperRelation> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         int scheduleId = schedulePaperRelationList.getFirst().getScheduleId();
+        Schedule schedule = scheduleDao.selectById(scheduleId);
         for (SchedulePaperRelation schedulePaperRelation : schedulePaperRelationList) {
             if (scheduleId != schedulePaperRelation.getScheduleId()) {
                 throw new IllegalObjectException("scheduleId不一致");
@@ -58,10 +70,10 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
             }
             schedulePaperRelation.setFinished(false);
             schedulePaperRelationDao.insert(schedulePaperRelation);
+            Paper paper = paperDao.selectById(schedulePaperRelation.getPaperId());
+            logService.log("加入论文<" + paper.getName() + ">到计划<" + schedule.getName() + '>', null);
             count++;
         }
-        //更新schedule
-        Schedule schedule = scheduleDao.selectById(scheduleId);
         schedule.setFinished(false);
         scheduleDao.updateById(schedule);
         return count == schedulePaperRelationList.size();
@@ -76,6 +88,8 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
         }
         Schedule schedule = scheduleDao.selectById(scheduleId);
         schedule.setFinished(getProgress(scheduleId) == 100);
+        Paper paper = paperDao.selectById(paperId);
+        logService.log("删除论文<" + paper.getName() + ">在计划<" + schedule.getName() + '>', null);
         return scheduleDao.updateById(schedule) > 0;
     }
 
@@ -88,6 +102,9 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
         }
         Schedule schedule = scheduleDao.selectById(scheduleId);
         schedule.setFinished(getProgress(scheduleId) == 100);
+        for (Integer id : paperIds) {
+            logService.log("删除论文<" + paperDao.selectById(id).getName() + ">在计划<" + schedule.getName() + '>', null);
+        }
         return scheduleDao.updateById(schedule) > 0;
     }
 
@@ -95,6 +112,13 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
     public boolean deletePaperRelationsByScheduleId(Integer scheduleId) {
         LambdaQueryWrapper<SchedulePaperRelation> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(SchedulePaperRelation::getScheduleId, scheduleId);
+        return schedulePaperRelationDao.delete(lambdaQueryWrapper) >= 0;
+    }
+
+    @Override
+    public boolean deletePaperRelationsByPaperId(Integer paperId) {
+        LambdaQueryWrapper<SchedulePaperRelation> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(SchedulePaperRelation::getPaperId, paperId);
         return schedulePaperRelationDao.delete(lambdaQueryWrapper) >= 0;
     }
 
@@ -108,7 +132,13 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
         } else {
             wrapper.set(SchedulePaperRelation::getFinTime, null);
         }
-        return schedulePaperRelationDao.update(schedulePaperRelation, wrapper) > 0;
+        if (schedulePaperRelationDao.update(schedulePaperRelation, wrapper) == 0) {
+            throw new OperationException("更新失败");
+        }
+        Integer scheduleId = schedulePaperRelation.getScheduleId();
+        Schedule schedule = scheduleDao.selectById(scheduleId);
+        schedule.setFinished(getProgress(scheduleId) == 100);
+        return scheduleDao.updateById(schedule) > 0;
     }
 
     @Override
@@ -121,5 +151,18 @@ public class SchedulePaperRelationServiceImpl implements SchedulePaperRelationSe
         }
         long readedCount = schedulePaperRelationDao.selectCount(queryWrapper.eq(SchedulePaperRelation::getFinished, true));
         return (int) (readedCount * 100 / count);
+    }
+
+    @Override
+    public LocalDateTime getFinishTime(Integer scheduleId) {
+        if (scheduleDao.selectById(scheduleId).getFinished()) {
+            LambdaQueryWrapper<SchedulePaperRelation> sprWrapper = new LambdaQueryWrapper<>();
+            sprWrapper.eq(SchedulePaperRelation::getScheduleId, scheduleId);
+            sprWrapper.orderByDesc(SchedulePaperRelation::getFinTime);
+            sprWrapper.last("limit 1");
+            return schedulePaperRelationDao.selectOne(sprWrapper).getFinTime();
+        } else {
+            return null;
+        }
     }
 }

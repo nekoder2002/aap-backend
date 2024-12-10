@@ -8,6 +8,7 @@ public class UserDTO {
     private String major;
     private String college;
     private String name;
+    private Boolean admin;
     public String getToken() {
         return token;
     }
@@ -62,5 +63,13 @@ public class UserDTO {
 
     public void setCollege(String college) {
         this.college = college;
+    }
+
+    public Boolean getAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(Boolean admin) {
+        this.admin = admin;
     }
 }

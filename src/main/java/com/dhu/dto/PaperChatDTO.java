@@ -9,6 +9,7 @@ public class PaperChatDTO {
     private String answer;
     private LocalDateTime chatTime;
     private Integer chatterId;
+    private String chatterName;
     private Integer paperId;
     private List<HistoryDTO> history;
     private List<PaperDocDTO> docs;
@@ -75,5 +76,13 @@ public class PaperChatDTO {
 
     public void setDocs(List<PaperDocDTO> docs) {
         this.docs = docs;
+    }
+
+    public String getChatterName() {
+        return chatterName;
+    }
+
+    public void setChatterName(String chatterName) {
+        this.chatterName = chatterName;
     }
 }

@@ -12,6 +12,7 @@ public class Team {
     private String name;
     @TableField("info")
     private String information;
+    private Boolean valid;
     @ TableField("build_time")
     private LocalDateTime buildTime;
     @TableLogic
@@ -56,5 +57,13 @@ public class Team {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public Boolean isValid() {
+        return valid;
+    }
+
+    public void setValid(Boolean valid) {
+        this.valid = valid;
     }
 }

@@ -19,13 +19,13 @@ public class KnowLedgeBaseController {
 
     //获取知识库信息列表
     @GetMapping("/list")
-    Result getList() {
+    public Result getList() {
         return Result.nullFilterData("kbs", knowledgeBaseService.queryKbLimit(UserHolder.getUser().getId(), BaseConstants.QUICK_SEARCH_NUM));
     }
 
     //根据id获取知识库信息
     @GetMapping("/{kbId}")
-    Result get(@PathVariable Integer kbId) {
+    public Result get(@PathVariable Integer kbId) {
         if (kbId == null || kbId <= 0) {
             return Result.getErr().setMsg("查询参数错误");
         }
@@ -34,7 +34,7 @@ public class KnowLedgeBaseController {
 
     //获取个人的知识库列表
     @GetMapping("/query")
-    Result queryList(@RequestParam int current, @RequestParam int size, @RequestParam String search) {
+    public Result queryList(@RequestParam int current, @RequestParam int size, @RequestParam String search) {
         if (current <= 0 || size <= 0) {
             return Result.getErr().setMsg("查询参数错误");
         }
@@ -43,7 +43,7 @@ public class KnowLedgeBaseController {
 
     //获取团队知识库列表
     @GetMapping("/query_team")
-    Result queryListByTeam(@RequestParam int current, @RequestParam int size, @RequestParam("team_id") Integer teamId, @RequestParam String search) {
+    public Result queryListByTeam(@RequestParam int current, @RequestParam int size, @RequestParam("team_id") Integer teamId, @RequestParam String search) {
         if (current <= 0 || size <= 0) {
             return Result.getErr().setMsg("查询参数错误");
         }
@@ -52,19 +52,19 @@ public class KnowLedgeBaseController {
 
     //插入知识库
     @PutMapping("/insert")
-    Result insertKnowledgeBase(@RequestBody KbAddFormDTO kbAddForm) {
+    public Result insertKnowledgeBase(@RequestBody KbAddFormDTO kbAddForm) {
         return Result.verifySave(knowledgeBaseService.insertKnowledgeBase(kbAddForm));
     }
 
     //删除知识库
     @DeleteMapping("/delete")
-    Result delete(@RequestParam("kb_id") Integer kbId) {
+    public Result delete(@RequestParam("kb_id") Integer kbId) {
         return Result.verifyDelete(knowledgeBaseService.deleteKnowledgeBase(kbId));
     }
 
     //修改知识库
     @PostMapping("/update")
-    Result update(@RequestBody KnowledgeBase kb) {
+    public Result update(@RequestBody KnowledgeBase kb) {
         kb.setBelongsToTeam(null);
         kb.setBelongsToTeam(null);
         kb.setBuildTime(null);
@@ -75,18 +75,13 @@ public class KnowLedgeBaseController {
 
     //批量删除知识库
     @DeleteMapping("/multdel")
-    Result deleteKnowledgeBases(@RequestBody List<Integer> kbIds) {
+    public Result deleteKnowledgeBases(@RequestBody List<Integer> kbIds) {
         return Result.verifyDelete(knowledgeBaseService.deleteKnowledgeBases(kbIds));
-    }
-
-    //查询团队的知识库数量
-    Result countTeamKnowledgeBases(Integer teamId) {
-        return null;
     }
 
     //查询个人的知识库数量
     @GetMapping("/count")
-    Result countUserKnowledgeBases() {
+    public Result countUserKnowledgeBases() {
         return Result.nullFilterData("count", knowledgeBaseService.countUserKnowledgeBases(UserHolder.getUser().getId()));
     }
 }

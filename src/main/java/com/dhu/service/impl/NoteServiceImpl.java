@@ -7,6 +7,7 @@ import com.dhu.dao.UserDao;
 import com.dhu.dto.NoteAddFormDTO;
 import com.dhu.dto.NoteDTO;
 import com.dhu.entity.Note;
+import com.dhu.entity.User;
 import com.dhu.service.NoteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,8 @@ public class NoteServiceImpl implements NoteService {
         for (Note note : notes) {
             NoteDTO noteDTO = new NoteDTO();
             BeanUtil.copyProperties(note, noteDTO);
-            noteDTO.setUserName(userDao.selectById(note.getUserId()).getName());
+            User user = userDao.selectById(note.getUserId());
+            noteDTO.setUserName(user==null?"已删除用户":user.getName());
             res.add(noteDTO);
         }
         return res;

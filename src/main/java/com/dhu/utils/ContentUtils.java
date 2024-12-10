@@ -2,7 +2,8 @@ package com.dhu.utils;
 
 import com.dhu.dto.EchartDTO;
 import com.dhu.exception.OperationException;
-import org.ansj.splitWord.analysis.ToAnalysis;
+import org.ansj.recognition.impl.StopRecognition;
+import org.ansj.splitWord.analysis.NlpAnalysis;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.nlpcn.commons.lang.util.StringUtil;
@@ -12,12 +13,27 @@ import java.io.IOException;
 import java.util.*;
 
 public class ContentUtils {
+    private static final StopRecognition stopRecognition;
+
+    static {
+        stopRecognition = new StopRecognition();
+        stopRecognition.insertStopWords("arxiv");
+        stopRecognition.insertStopNatures("u");
+        stopRecognition.insertStopNatures("r");
+        stopRecognition.insertStopNatures("m");
+        stopRecognition.insertStopNatures("q");
+        stopRecognition.insertStopNatures("c");
+        stopRecognition.insertStopNatures("p");
+        stopRecognition.insertStopNatures("t");
+        stopRecognition.insertStopNatures("w");
+    }
+
     /**
      * 获取 分词-词频 列表
      */
     public static List<EchartDTO> getWordList(String text) {
         Map<String, Integer> map = new HashMap<>(16);
-        String result = ToAnalysis.parse(text).toStringWithOutNature();
+        String result = NlpAnalysis.parse(text).recognition(stopRecognition).toStringWithOutNature();
 
         //分词后的内容，分词间使用英文逗号分隔。
         String[] words = result.split(",");
@@ -73,7 +89,7 @@ public class ContentUtils {
     }
 
     public static String readPDF(File file) {
-        PDDocument document=null;
+        PDDocument document = null;
         try {
             document = PDDocument.load(file);
             //Instantiate PDFTextStripper class
@@ -82,8 +98,8 @@ public class ContentUtils {
             return pdfStripper.getText(document);
         } catch (IOException e) {
             throw new OperationException("读取pdf异常");
-        }finally {
-            if (document!=null){
+        } finally {
+            if (document != null) {
                 try {
                     document.close();
                 } catch (IOException e) {

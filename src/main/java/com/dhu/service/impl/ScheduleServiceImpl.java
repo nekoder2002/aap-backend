@@ -8,11 +8,9 @@ import com.dhu.dao.*;
 import com.dhu.dto.PaperRecordDTO;
 import com.dhu.dto.ScheduleAddFormDTO;
 import com.dhu.dto.ScheduleDTO;
-import com.dhu.entity.KnowledgeBase;
-import com.dhu.entity.Paper;
-import com.dhu.entity.Schedule;
-import com.dhu.entity.SchedulePaperRelation;
+import com.dhu.entity.*;
 import com.dhu.exception.BlankObjectException;
+import com.dhu.service.LogService;
 import com.dhu.service.SchedulePaperRelationService;
 import com.dhu.service.ScheduleService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,13 +39,16 @@ public class ScheduleServiceImpl implements ScheduleService {
     private SchedulePaperRelationDao schedulePaperRelationDao;
     @Autowired
     private SchedulePaperRelationService schedulePaperRelationService;
+    @Autowired
+    private LogService logService;
 
     @Override
     public ScheduleDTO querySingle(Integer scheduleId) {
         Schedule schedule = scheduleDao.selectById(scheduleId);
         ScheduleDTO dto = new ScheduleDTO();
         BeanUtil.copyProperties(schedule, dto);
-        dto.setBuilderName(userDao.selectById(schedule.getBuilderId()).getName());
+        User user=userDao.selectById(schedule.getBuilderId());
+        dto.setBuilderName(user==null?"已删除用户":user.getName());
         dto.setProgress(schedulePaperRelationService.getProgress(scheduleId));
         return dto;
     }
@@ -64,8 +65,10 @@ public class ScheduleServiceImpl implements ScheduleService {
         for (Schedule schedule : list) {
             ScheduleDTO dto = new ScheduleDTO();
             BeanUtil.copyProperties(schedule, dto);
-            dto.setBuilderName(userDao.selectById(schedule.getBuilderId()).getName());
+            User user=userDao.selectById(schedule.getBuilderId());
+            dto.setBuilderName(user==null?"已删除用户":user.getName());
             dto.setProgress(schedulePaperRelationService.getProgress(schedule.getId()));
+            dto.setRealTime(schedulePaperRelationService.getFinishTime(schedule.getId()));
             dtoList.add(dto);
         }
         dtoPage.setPages(page.getPages());
@@ -98,7 +101,8 @@ public class ScheduleServiceImpl implements ScheduleService {
                 PaperRecordDTO dto = new PaperRecordDTO();
                 Paper paper = paperIndex.get(relation.getPaperId());
                 BeanUtil.copyProperties(paper, dto);
-                dto.setBuilderName(userDao.selectById(paper.getBuilderId()).getName());
+                User user=userDao.selectById(paper.getBuilderId());
+                dto.setBuilderName(user==null?"已删除用户":user.getName());
                 dto.setKnowledgeBaseName(knowledgeBaseDao.selectById(paper.getKnowledgeBaseId()).getName());
                 dto.setFinished(relation.getFinished());
                 dto.setFinTime(relation.getFinTime());
@@ -119,17 +123,20 @@ public class ScheduleServiceImpl implements ScheduleService {
         BeanUtil.copyProperties(scheduleAddFormDTO, schedule);
         schedule.setBuildTime(LocalDateTime.now());
         schedule.setFinished(false);
+        logService.log("添加计划<" + schedule.getName() + ">", null);
         return scheduleDao.insert(schedule) > 0;
     }
 
     @Override
     public boolean deleteSchedule(Integer scheduleId) {
+        logService.log("删除计划<" + scheduleDao.selectById(scheduleId).getName() + ">", null);
         return schedulePaperRelationService.deletePaperRelationsByScheduleId(scheduleId) && scheduleDao.deleteById(scheduleId) > 0;
     }
 
     @Override
     public boolean deleteSchedules(List<Integer> ids) {
         for (Integer id : ids) {
+            logService.log("删除计划<" + scheduleDao.selectById(id).getName() + ">", null);
             if(schedulePaperRelationService.deletePaperRelationsByScheduleId(id)){
                 throw new BlankObjectException("删除失败");
             }
@@ -139,6 +146,14 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Override
     public boolean updateSchedule(Schedule schedule) {
+        logService.log("更新计划<" + schedule.getName() + ">", null);
         return scheduleDao.updateById(schedule) > 0;
+    }
+
+    @Override
+    public long countSchedule(Integer userId) {
+        LambdaQueryWrapper<Schedule> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Schedule::getBuilderId, userId);
+        return scheduleDao.selectCount(queryWrapper);
     }
 }

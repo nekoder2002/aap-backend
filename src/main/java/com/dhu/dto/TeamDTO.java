@@ -10,6 +10,7 @@ public class TeamDTO {
     private String adminName;
     private Integer adminId;
     private Integer userRight;
+    private Boolean valid;
 
     public Integer getId() {
         return id;
@@ -65,5 +66,13 @@ public class TeamDTO {
 
     public void setUserRight(Integer userRight) {
         this.userRight = userRight;
+    }
+
+    public Boolean getValid() {
+        return valid;
+    }
+
+    public void setValid(Boolean valid) {
+        this.valid = valid;
     }
 }

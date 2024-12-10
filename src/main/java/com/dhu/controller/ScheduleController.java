@@ -96,4 +96,9 @@ public class ScheduleController {
     public Result setPaperStatus(@RequestBody SchedulePaperRelation schedulePaperRelation) {
         return Result.verifyUpdate(schedulePaperRelationService.setPaperStatus(schedulePaperRelation));
     }
+
+    @GetMapping("/count")
+    public Result countTeam() {
+        return Result.nullFilterData("count", scheduleService.countSchedule(UserHolder.getUser().getId()));
+    }
 }

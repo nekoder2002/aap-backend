@@ -19,8 +19,6 @@ public class Schedule {
     private LocalDateTime startTime;
     @TableField("end_time")
     private LocalDateTime endTime;
-    @TableField("real_time")
-    private LocalDateTime realTime;
     private Boolean finished;
     @TableLogic
     private boolean isDeleted;
@@ -96,13 +94,5 @@ public class Schedule {
 
     public void setEndTime(LocalDateTime endTime) {
         this.endTime = endTime;
-    }
-
-    public LocalDateTime getRealTime() {
-        return realTime;
-    }
-
-    public void setRealTime(LocalDateTime realTime) {
-        this.realTime = realTime;
     }
 }

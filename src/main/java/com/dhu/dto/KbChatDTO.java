@@ -9,6 +9,7 @@ public class KbChatDTO {
     private String answer;
     private LocalDateTime chatTime;
     private Integer chatterId;
+    private String chatterName;
     private Integer knowledgeBaseId;
     private List<HistoryDTO> history;
     private List<KbDocDTO> docs;
@@ -75,5 +76,13 @@ public class KbChatDTO {
 
     public void setDocs(List<KbDocDTO> docs) {
         this.docs = docs;
+    }
+
+    public String getChatterName() {
+        return chatterName;
+    }
+
+    public void setChatterName(String chatterName) {
+        this.chatterName = chatterName;
     }
 }

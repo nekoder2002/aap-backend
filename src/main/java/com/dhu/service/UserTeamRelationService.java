@@ -14,6 +14,8 @@ public interface UserTeamRelationService {
     //批量删除一个团队中的成员
     boolean deleteUsersByTeam(List<Integer> userIds, Integer teamId);
 
+    boolean deleteByUserId(Integer userId);
+
     //删除团队所有成员
     boolean deleteUsersInTeam(Integer teamId);
 

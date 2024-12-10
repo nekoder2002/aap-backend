@@ -14,13 +14,13 @@ public class NoteController {
 
     //获取note信息列表
     @GetMapping("/list")
-    Result getList(@RequestParam("paper_id") Integer paperId) {
+    public Result getList(@RequestParam("paper_id") Integer paperId) {
         return Result.nullFilterData("notes", noteService.queryNotes(paperId));
     }
     
     //插入note
     @PutMapping("/insert")
-    Result insert(@RequestBody NoteAddFormDTO noteAddFormDTO) {
+    public Result insert(@RequestBody NoteAddFormDTO noteAddFormDTO) {
         return Result.verifySave(noteService.insertNote(noteAddFormDTO));
     }
 }

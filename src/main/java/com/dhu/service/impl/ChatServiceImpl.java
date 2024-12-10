@@ -6,18 +6,12 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dhu.constants.BaseConstants;
 import com.dhu.constants.InterfaceUrlConstants;
-import com.dhu.dao.KnowledgeBaseChatDao;
-import com.dhu.dao.KnowledgeBaseDao;
-import com.dhu.dao.PaperChatDao;
-import com.dhu.dao.PaperDao;
+import com.dhu.dao.*;
 import com.dhu.dto.KbChatDTO;
 import com.dhu.dto.KbDocDTO;
 import com.dhu.dto.PaperChatDTO;
 import com.dhu.dto.PaperDocDTO;
-import com.dhu.entity.KnowledgeBase;
-import com.dhu.entity.KnowledgeBaseChat;
-import com.dhu.entity.Paper;
-import com.dhu.entity.PaperChat;
+import com.dhu.entity.*;
 import com.dhu.exception.NotExistException;
 import com.dhu.service.ChatService;
 import com.dhu.utils.HttpHelper;
@@ -32,6 +26,8 @@ import java.util.List;
 @Service
 @Transactional
 public class ChatServiceImpl implements ChatService {
+    @Autowired
+    private UserDao userDao;
     @Autowired
     private PaperChatDao paperChatDao;
     @Autowired
@@ -61,6 +57,7 @@ public class ChatServiceImpl implements ChatService {
         json.fluentPut("query", paperChat.getQuestion());
         json.fluentPut("knowledge_base_name", kb.getIndexUUID());
         json.fluentPut("file_name", paper.getIndexUUID() + BaseConstants.PAPER_TYPE);
+        json.fluentPut("top_k", 5);
         json.fluentPut("history", history);
         json.fluentPut("stream", false);
         json.fluentPut("model_name", "chatglm3-6b");
@@ -95,7 +92,7 @@ public class ChatServiceImpl implements ChatService {
         JSONObject json = new JSONObject();
         json.fluentPut("query", kbChat.getQuestion());
         json.fluentPut("knowledge_base_name", kb.getIndexUUID());
-        json.fluentPut("top_k", 3);
+        json.fluentPut("top_k", 4);
         json.fluentPut("score_threshold", 0.5);
         json.fluentPut("history", history);
         json.fluentPut("stream", false);
@@ -121,14 +118,16 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public List<PaperChatDTO> queryPaperChatRecords(Integer paperId, Integer userId, int limit) {
+    public List<PaperChatDTO> queryPaperChatRecords(Integer paperId, int limit) {
         List<PaperChatDTO> result = new LinkedList<>();
         LambdaQueryWrapper<PaperChat> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(PaperChat::getPaperId, paperId).eq(PaperChat::getChatterId, userId).orderByAsc(PaperChat::getChatTime).last("limit " + limit);
+        wrapper.eq(PaperChat::getPaperId, paperId).orderByAsc(PaperChat::getChatTime).last("limit " + limit);
         List<PaperChat> paperChats = paperChatDao.selectList(wrapper);
         for (PaperChat chat : paperChats) {
             PaperChatDTO dto = new PaperChatDTO();
             BeanUtil.copyProperties(chat, dto);
+            User user = userDao.selectById(chat.getChatterId());
+            dto.setChatterName(user==null?"<已删除用户>":user.getName());
             //封装文档数组
             dto.setDocs(JSONArray.parseArray(chat.getData(), PaperDocDTO.class));
             result.add(dto);
@@ -137,15 +136,17 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public List<KbChatDTO> queryKbChatRecords(Integer kbId, Integer userId, int limit) {
+    public List<KbChatDTO> queryKbChatRecords(Integer kbId, int limit) {
         List<KbChatDTO> result = new LinkedList<>();
         LambdaQueryWrapper<KnowledgeBaseChat> chatWrapper = new LambdaQueryWrapper<>();
         LambdaQueryWrapper<Paper> paperWrapper = new LambdaQueryWrapper<>();
-        chatWrapper.eq(KnowledgeBaseChat::getKnowledgeBaseId, kbId).eq(KnowledgeBaseChat::getChatterId, userId).orderByAsc(KnowledgeBaseChat::getChatTime).last("limit " + limit);
+        chatWrapper.eq(KnowledgeBaseChat::getKnowledgeBaseId, kbId).orderByAsc(KnowledgeBaseChat::getChatTime).last("limit " + limit);
         List<KnowledgeBaseChat> paperChats = knowledgeBaseChatDao.selectList(chatWrapper);
         for (KnowledgeBaseChat chat : paperChats) {
             KbChatDTO dto = new KbChatDTO();
             BeanUtil.copyProperties(chat, dto);
+            User user = userDao.selectById(chat.getChatterId());
+            dto.setChatterName(user==null?"<已删除用户>":user.getName());
             //封装文档数组
             dto.setDocs(JSONArray.parseArray(chat.getData(), KbDocDTO.class));
             for (KbDocDTO doc : dto.getDocs()) {

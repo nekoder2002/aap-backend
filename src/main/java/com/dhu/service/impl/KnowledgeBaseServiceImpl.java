@@ -20,8 +20,10 @@ import com.dhu.exception.NotExistException;
 import com.dhu.exception.OperationException;
 import com.dhu.service.ChatService;
 import com.dhu.service.KnowledgeBaseService;
+import com.dhu.service.LogService;
 import com.dhu.service.PaperService;
 import com.dhu.utils.HttpHelper;
+import com.dhu.utils.UserHolder;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,8 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     private PaperService paperService;
     @Autowired
     private ChatService chatService;
+    @Autowired
+    private LogService logService;
     @Resource
     private HttpHelper httpHelper;
 
@@ -55,18 +59,22 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         KbDTO dto = new KbDTO();
         BeanUtil.copyProperties(knowledgeBase, dto);
         User user = userDao.selectById(knowledgeBase.getBuilderId());
-        dto.setBuilderName(user.getName());
+        dto.setBuilderName(user==null?"已删除用户":user.getName());
         if (knowledgeBase.getBelongsToTeam()) {
-            LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(UserTeamRelation::getTeamId, knowledgeBase.getTeamId()).eq(UserTeamRelation::getUserId, userId);
-            UserTeamRelation relation = userTeamRelationDao.selectOne(wrapper);
-            if (relation == null) {
-                dto.setUserRight(RightConstants.NOT_RIGHT);
-            }
-            if (knowledgeBase.getBuilderId().equals(userId)) {
+            if (UserHolder.getUser().getAdmin()){
                 dto.setUserRight(RightConstants.ADMIN);
-            } else {
-                dto.setUserRight(relation.getUserRight());
+            }else{
+                LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(UserTeamRelation::getTeamId, knowledgeBase.getTeamId()).eq(UserTeamRelation::getUserId, userId);
+                UserTeamRelation relation = userTeamRelationDao.selectOne(wrapper);
+                if (relation == null) {
+                    dto.setUserRight(RightConstants.NOT_RIGHT);
+                }
+                if (knowledgeBase.getBuilderId().equals(userId)) {
+                    dto.setUserRight(RightConstants.ADMIN);
+                } else {
+                    dto.setUserRight(relation.getUserRight());
+                }
             }
         } else {
             dto.setUserRight(RightConstants.ADMIN);
@@ -85,7 +93,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
             KbDTO kbDTO = new KbDTO();
             BeanUtil.copyProperties(kb, kbDTO);
             kbDTO.setUserRight(RightConstants.ADMIN);
-            kbDTO.setBuilderName(user.getName());
+            kbDTO.setBuilderName(user==null?"已删除用户":user.getName());
             dtoList.add(kbDTO);
         }
         return dtoList;
@@ -107,12 +115,13 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         for (KnowledgeBase kb : list) {
             KbDTO dto = new KbDTO();
             BeanUtil.copyProperties(kb, dto);
-            if (kb.getBuilderId().equals(userId)) {
+            if (kb.getBuilderId().equals(userId)||UserHolder.getUser().getAdmin()) {
                 dto.setUserRight(RightConstants.ADMIN);
             } else {
                 dto.setUserRight(userRight);
             }
-            dto.setBuilderName(userDao.selectById(kb.getBuilderId()).getName());
+            User user = userDao.selectById(kb.getBuilderId());
+            dto.setBuilderName(user==null?"已删除用户":user.getName());
             dtoList.add(dto);
         }
         dtoPage.setPages(page.getPages());
@@ -134,7 +143,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         for (KnowledgeBase kb : list) {
             KbDTO dto = new KbDTO();
             BeanUtil.copyProperties(kb, dto);
-            dto.setBuilderName(user.getName());
+            dto.setBuilderName(user==null?"已删除用户":user.getName());
             dto.setUserRight(RightConstants.ADMIN);
             dtoList.add(dto);
         }
@@ -164,6 +173,9 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         String result = httpHelper.post(InterfaceUrlConstants.ADD_KNOWLEDGE_BASE, json.toString());
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
+
+            logService.log("添加知识库<" + kb.getName() + '>', kb.getTeamId());
+
             return knowledgeBaseDao.insert(kb) > 0;
         } else {
             throw new HttpException("接口访问：新建数据库失败");
@@ -182,6 +194,8 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         String result = httpHelper.post(InterfaceUrlConstants.DEL_KNOWLEDGE_BASE, "\"" + knowledgeBase.getIndexUUID() + "\"");
         JSONObject object = JSONObject.parseObject(result);
         if (object.getInteger("code") == 200) {
+            //临时添加
+            logService.log("删除知识库<" + knowledgeBase.getName() + '>', knowledgeBase.getTeamId());
             return chatService.deleteChatByKb(kbId) && paperService.deletePaperByKb(kbId) && knowledgeBaseDao.deleteById(kbId) > 0;
         } else {
             throw new HttpException("接口访问：删除知识库失败");
@@ -190,6 +204,8 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
 
     @Override
     public boolean updateKnowledgeBase(KnowledgeBase kb) {
+        //临时添加
+        logService.log("更新知识库<" + kb.getName() + '>', kb.getTeamId());
         return knowledgeBaseDao.updateById(kb) > 0;
     }
 
@@ -209,6 +225,8 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
                 if (object.getInteger("code") != 200) {
                     throw new HttpException("接口访问：删除知识库失败");
                 }
+                //临时添加
+                logService.log("更新知识库<" + knowledgeBase.getName() + '>', knowledgeBase.getTeamId());
             }
             for (Integer kbId : kbIds) {
                 if (!paperService.deletePaperByKb(kbId) && !chatService.deleteChatByKb(kbId)) {

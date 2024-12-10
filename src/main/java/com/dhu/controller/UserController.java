@@ -2,6 +2,7 @@ package com.dhu.controller;
 
 import com.dhu.dto.LoginFormDTO;
 import com.dhu.dto.RegisterFormDTO;
+import com.dhu.dto.UserQueryDTO;
 import com.dhu.entity.User;
 import com.dhu.service.UserService;
 import com.dhu.utils.EmailHelper;
@@ -11,6 +12,8 @@ import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/user")
@@ -47,7 +50,7 @@ public class UserController {
     //获取Info
     @GetMapping("/me")
     public Result getInfo() {
-        return Result.nullFilterData("user", userService.getInfo(UserHolder.getUser().getId()));
+        return Result.nullFilterData("user", UserHolder.getUser());
     }
 
     //根据id获取用户信息
@@ -59,15 +62,8 @@ public class UserController {
     //更新
     @PostMapping("/update")
     public Result update(@RequestBody User user) {
-        user.setId(UserHolder.getUser().getId());
         if (user.getId() == null) {
             return Result.updateErr().setMsg("用户id为空");
-        }
-        //如果更新密码和邮箱，删除登录状态
-        if (user.getPassword() != null || user.getEmail() != null) {
-            if(userService.deleteUserLoginStatus(UserHolder.getUser().getToken())){
-                return Result.updateErr();
-            }
         }
         //防止更改注册时间
         user.setRegisterTime(null);
@@ -84,5 +80,28 @@ public class UserController {
             return Result.getErr().setMsg("邮箱格式不合法");
         }
         return Result.verifyGet(userService.sendCaptcha(email));
+    }
+
+    @PostMapping("/list")
+    public Result getList(@RequestBody UserQueryDTO userQueryDTO) {
+        return Result.nullFilterData("users", userService.getPage(userQueryDTO.getCurrent(), userQueryDTO.getSize(), userQueryDTO.getName(), userQueryDTO.getSchool(), userQueryDTO.getCollege(), userQueryDTO.getMajor()));
+    }
+
+    //批量删除
+    @DeleteMapping("/multdel")
+    Result deleteUsers(@RequestBody List<Integer> userIds) {
+        return Result.verifyDelete(userService.deleteUsers(userIds));
+    }
+
+    //删除
+    @DeleteMapping("/delete")
+    Result deleteUser(@RequestParam("user_id") Integer paperId) {
+        return Result.verifyDelete(userService.deleteUser(paperId));
+    }
+
+    //统计用户数
+    @GetMapping("/count_sys")
+    public Result countUser() {
+        return Result.nullFilterData("count",userService.countUser());
     }
 }

@@ -7,9 +7,11 @@ import com.dhu.constants.RightConstants;
 import com.dhu.dao.TeamDao;
 import com.dhu.dao.UserDao;
 import com.dhu.dao.UserTeamRelationDao;
+import com.dhu.entity.Team;
 import com.dhu.entity.UserTeamRelation;
 import com.dhu.exception.IllegalObjectException;
 import com.dhu.exception.NotExistException;
+import com.dhu.service.LogService;
 import com.dhu.service.UserTeamRelationService;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,8 @@ public class UserTeamRelationServiceImpl implements UserTeamRelationService {
     private UserDao userDao;
     @Autowired
     private TeamDao teamDao;
+    @Autowired
+    private LogService logService;
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
@@ -59,6 +63,8 @@ public class UserTeamRelationServiceImpl implements UserTeamRelationService {
         relation.setUserRight(RightConstants.MEMBER);
         relation.setJoinTime(LocalDateTime.now());
         userTeamRelationDao.insert(relation);
+        Team team = teamDao.selectById(teamId);
+        logService.log("加入团队" + team.getName() + ">", team.getId());
         return true;
     }
 
@@ -66,6 +72,8 @@ public class UserTeamRelationServiceImpl implements UserTeamRelationService {
     public boolean deleteUserInTeam(Integer teamId, Integer userId) {
         LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserTeamRelation::getUserId, userId).eq(UserTeamRelation::getTeamId, teamId);
+        Team team = teamDao.selectById(teamId);
+        logService.log(userDao.selectById(userId).getName() + "退出团队<" + team.getName() + ">", userId, team.getId());
         return userTeamRelationDao.delete(wrapper) > 0;
     }
 
@@ -73,7 +81,18 @@ public class UserTeamRelationServiceImpl implements UserTeamRelationService {
     public boolean deleteUsersByTeam(List<Integer> userIds, Integer teamId) {
         LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(UserTeamRelation::getUserId, userIds).eq(UserTeamRelation::getTeamId, teamId);
+        Team team = teamDao.selectById(teamId);
+        for (Integer userId : userIds) {
+            logService.log(userDao.selectById(userId).getName() + "退出团队<" + team.getName() + ">", userId, team.getId());
+        }
         return userTeamRelationDao.delete(wrapper) > 0;
+    }
+
+    @Override
+    public boolean deleteByUserId(Integer userId) {
+        LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserTeamRelation::getUserId, userId);
+        return userTeamRelationDao.delete(wrapper) >= 0;
     }
 
     @Override
@@ -87,6 +106,12 @@ public class UserTeamRelationServiceImpl implements UserTeamRelationService {
     public boolean setUserRight(UserTeamRelation relation) {
         LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserTeamRelation::getUserId, relation.getUserId()).eq(UserTeamRelation::getTeamId, relation.getTeamId());
+        Team team = teamDao.selectById(relation.getTeamId());
+        if (relation.getUserRight() == RightConstants.ADMIN) {
+            logService.log(userDao.selectById(relation.getUserId()).getName() + "设置为团队<" + team.getName() + ">管理员", relation.getUserId(), team.getId());
+        } else {
+            logService.log(userDao.selectById(relation.getUserId()).getName() + "设置为团队<" + team.getName() + ">成员", relation.getUserId(), team.getId());
+        }
         return userTeamRelationDao.update(relation, wrapper) > 0;
     }
 }

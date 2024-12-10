@@ -20,9 +20,11 @@ import com.dhu.entity.User;
 import com.dhu.entity.UserTeamRelation;
 import com.dhu.exception.OperationException;
 import com.dhu.service.KnowledgeBaseService;
+import com.dhu.service.LogService;
 import com.dhu.service.TeamService;
 import com.dhu.service.UserTeamRelationService;
 import com.dhu.utils.BaseUtils;
+import com.dhu.utils.UserHolder;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -53,6 +55,8 @@ public class TeamServiceImpl implements TeamService {
     private UserTeamRelationService userTeamRelationService;
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private LogService logService;
 
     @Override
     public TeamDTO querySingle(Integer teamId, Integer userId) {
@@ -63,15 +67,19 @@ public class TeamServiceImpl implements TeamService {
         relWrapper.eq(UserTeamRelation::getTeamId, teamId).eq(UserTeamRelation::getUserRight, RightConstants.ADMIN);
         UserTeamRelation relation = userTeamRelationDao.selectOne(relWrapper);
         User user = userDao.selectById(relation.getUserId());
-        dto.setAdminId(user.getId());
-        dto.setAdminName(user.getName());
-        relWrapper.clear();
-        relWrapper.eq(UserTeamRelation::getUserId, userId).eq(UserTeamRelation::getTeamId, teamId);
-        relation = userTeamRelationDao.selectOne(relWrapper);
-        if (relation == null) {
-            dto.setUserRight(RightConstants.NOT_RIGHT);
-        } else {
-            dto.setUserRight(relation.getUserRight());
+        dto.setAdminId(user == null ? -1 : user.getId());
+        dto.setAdminName(user == null ? "已删除用户" : user.getName());
+        if (UserHolder.getUser().getAdmin()){
+            dto.setUserRight(RightConstants.ADMIN);
+        }else{
+            relWrapper.clear();
+            relWrapper.eq(UserTeamRelation::getUserId, userId).eq(UserTeamRelation::getTeamId, teamId);
+            relation = userTeamRelationDao.selectOne(relWrapper);
+            if (relation == null) {
+                dto.setUserRight(RightConstants.NOT_RIGHT);
+            } else {
+                dto.setUserRight(relation.getUserRight());
+            }
         }
         return dto;
     }
@@ -115,8 +123,8 @@ public class TeamServiceImpl implements TeamService {
                 TeamDTO dto = new TeamDTO();
                 User user = utMap.get(relation.getTeamId());
                 BeanUtil.copyProperties(teamIndex.get(relation.getTeamId()), dto);
-                dto.setAdminName(user.getName());
-                dto.setAdminId(user.getId());
+                dto.setAdminId(user == null ? -1 : user.getId());
+                dto.setAdminName(user == null ? "已删除用户" : user.getName());
                 dto.setUserRight(relation.getUserRight());
                 dtoList.add(dto);
             }
@@ -170,6 +178,7 @@ public class TeamServiceImpl implements TeamService {
         Team team = new Team();
         BeanUtil.copyProperties(teamAddForm, team);
         team.setBuildTime(LocalDateTime.now());
+        team.setValid(false);
         if (teamDao.insert(team) <= 0) {
             throw new OperationException("添加团队失败");
         }
@@ -179,14 +188,25 @@ public class TeamServiceImpl implements TeamService {
         relation.setTeamId(team.getId());
         relation.setUserId(teamAddForm.getAdminId());
         relation.setJoinTime(LocalDateTime.now());
+        logService.log("创建团队<" + team.getName() + ">,等待管理员审核", team.getId());
         return userTeamRelationDao.insert(relation) > 0;
     }
 
     @Override
     public boolean deleteTeam(Integer teamId) {
+        Team team = teamDao.selectById(teamId);
         //删除所有成员和知识库
         boolean flag = userTeamRelationService.deleteUsersInTeam(teamId) && deleteKnowledgeByTeam(teamId);
+        logService.log("删除团队<" + team.getName() + ">", team.getId());
         return flag && teamDao.deleteById(teamId) > 0;
+    }
+
+    @Override
+    public boolean deleteTeams(List<Integer> teamIds) {
+        for (Integer teamId : teamIds) {
+            deleteTeam(teamId);
+        }
+        return true;
     }
 
     @Override
@@ -201,6 +221,7 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     public boolean updateTeam(Team team) {
+        logService.log("更新团队<" + team.getName() + ">", team.getId());
         return teamDao.updateById(team) > 0;
     }
 
@@ -224,9 +245,74 @@ public class TeamServiceImpl implements TeamService {
     }
 
     @Override
+    public IPage<TeamDTO> getTeamPage(int current, int size, String name, String email, boolean isValid) {
+        IPage<Team> page = new Page<>(current, size);
+        IPage<TeamDTO> dtoPage = new Page<>(current, size);
+        LambdaQueryWrapper<Team> wrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<UserTeamRelation> relWrapper = new LambdaQueryWrapper<>();
+        if (name != null && !name.isEmpty()) {
+            wrapper.like(Team::getName, name);
+        }
+        User user=userDao.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email));
+        if (user != null) {
+            relWrapper.eq(UserTeamRelation::getUserId, user.getId()).eq(UserTeamRelation::getUserRight, RightConstants.ADMIN);
+            List<Integer> teamIds = userTeamRelationDao.selectList(relWrapper).stream().map(UserTeamRelation::getTeamId).toList();
+            if (!teamIds.isEmpty()) {
+                wrapper.in(Team::getId, teamIds);
+            }else{
+                dtoPage.setRecords(List.of());
+                dtoPage.setPages(0);
+                dtoPage.setTotal(0);
+                return dtoPage;
+            }
+        }
+        wrapper.eq(Team::isValid, isValid);
+        teamDao.selectPage(page, wrapper);
+        List<Team> teams = page.getRecords();
+        List<TeamDTO> dtoList = new ArrayList<>();
+        for (Team team : teams) {
+            TeamDTO dto = new TeamDTO();
+            BeanUtil.copyProperties(team, dto);
+            //获取user
+            relWrapper.clear();
+            relWrapper.eq(UserTeamRelation::getTeamId, team.getId()).eq(UserTeamRelation::getUserRight, RightConstants.ADMIN);
+            UserTeamRelation relation = userTeamRelationDao.selectOne(relWrapper);
+            User tempUser = userDao.selectById(relation.getUserId());
+            dto.setUserRight(RightConstants.ADMIN);
+            dto.setAdminId(tempUser == null ? -1 : tempUser.getId());
+            dto.setAdminName(tempUser == null ? "已删除用户" : tempUser.getName());
+            dtoList.add(dto);
+        }
+        dtoPage.setRecords(dtoList);
+        dtoPage.setPages(page.getPages());
+        dtoPage.setTotal(page.getTotal());
+        return dtoPage;
+    }
+
+    @Override
     public long countTeam(Integer userId, boolean isAdmin) {
         LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserTeamRelation::getUserId, userId).ne(isAdmin, UserTeamRelation::getUserRight, RightConstants.MEMBER);
         return userTeamRelationDao.selectCount(wrapper);
+    }
+
+    @Override
+    public boolean updateTeamAdmin(Team team) {
+        LambdaQueryWrapper<UserTeamRelation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserTeamRelation::getTeamId, team.getId()).eq(UserTeamRelation::getUserRight, RightConstants.ADMIN);
+        UserTeamRelation relation = userTeamRelationDao.selectOne(wrapper);
+        User user = userDao.selectById(relation.getUserId());
+        logService.log("管理员审核通过团队<" + team.getName() + ">", user == null ? -1 : user.getId(), team.getId());
+        return teamDao.updateById(team) > 0;
+    }
+
+    @Override
+    public long countTeam() {
+        return teamDao.selectCount(new LambdaQueryWrapper<>());
+    }
+
+    @Override
+    public long countCheckTeam() {
+        return teamDao.selectCount(new LambdaQueryWrapper<Team>().eq(Team::isValid, false));
     }
 }
